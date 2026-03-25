@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: klline
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+        - name: celery-worker
+          image: klline/backend:latest
+          command: ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info"]
+          env:
+            - name: DATABASE_URL
+              value: postgresql+asyncpg://klline:$(POSTGRES_PASSWORD)@postgres:5432/klline
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: klline-secrets
+                  key: postgres-password
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: klline-secrets
+                  key: secret-key
+            - name: REDIS_URL
+              value: redis://redis:6379/0
+            - name: MINIO_ENDPOINT
+              value: minio:9000
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: klline-secrets
+                  key: minio-access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: klline-secrets
+                  key: minio-secret-key
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+  namespace: klline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-beat
+  template:
+    metadata:
+      labels:
+        app: celery-beat
+    spec:
+      containers:
+        - name: celery-beat
+          image: klline/backend:latest
+          command: ["celery", "-A", "app.tasks.celery_app", "beat", "--loglevel=info"]
+          env:
+            - name: DATABASE_URL
+              value: postgresql+asyncpg://klline:$(POSTGRES_PASSWORD)@postgres:5432/klline
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: klline-secrets
+                  key: postgres-password
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: klline-secrets
+                  key: secret-key
+            - name: REDIS_URL
+              value: redis://redis:6379/0
+            - name: MINIO_ENDPOINT
+              value: minio:9000
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: klline-secrets
+                  key: minio-access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: klline-secrets
+                  key: minio-secret-key

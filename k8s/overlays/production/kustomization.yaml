@@ -1,0 +1,56 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../base
+
+# Production image tags (set via CI/CD, e.g. kustomize edit set image)
+images:
+  - name: klline/backend
+    newTag: "1.0.0"
+  - name: klline/frontend
+    newTag: "1.0.0"
+
+# Production ingress with TLS
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: klline.yourdomain.at
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+              - klline.yourdomain.at
+            secretName: klline-tls
+      - op: add
+        path: /metadata/annotations/cert-manager.io~1cluster-issuer
+        value: letsencrypt-prod
+    target:
+      kind: Ingress
+      name: klline-ingress
+
+# Production PVC sizes
+  - patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 50Gi
+    target:
+      kind: PersistentVolumeClaim
+      name: postgres-pvc
+
+  - patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 100Gi
+    target:
+      kind: PersistentVolumeClaim
+      name: minio-pvc
+
+# NOTE: Override klline-secrets with real values before deploying to production.
+# Use: kubectl create secret generic klline-secrets -n klline \
+#        --from-literal=postgres-password=<STRONG_PW> \
+#        --from-literal=secret-key=<RANDOM_256BIT> \
+#        --from-literal=minio-access-key=<KEY> \
+#        --from-literal=minio-secret-key=<SECRET> \
+#        --dry-run=client -o yaml | kubectl apply -f -
