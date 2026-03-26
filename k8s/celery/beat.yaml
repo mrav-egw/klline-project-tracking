@@ -23,6 +23,8 @@ spec:
             - app.tasks.celery_app
             - beat
             - --loglevel=info
+            - --schedule
+            - /tmp/celerybeat-schedule
           envFrom:
             - secretRef:
                 name: klline-secrets
