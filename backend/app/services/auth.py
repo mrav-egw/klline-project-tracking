@@ -24,8 +24,8 @@ def create_access_token(user_id: str) -> str:
     return jwt.encode({"sub": user_id, "exp": expire}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
-    result = await db.execute(select(User).where(User.email == email))
+async def authenticate_user(db: AsyncSession, username: str, password: str) -> User | None:
+    result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
     if not user or not verify_password(password, user.hashed_password):
         return None
@@ -48,9 +48,9 @@ async def ensure_admin_user(db: AsyncSession) -> None:
     result = await db.execute(select(User).limit(1))
     if result.scalar_one_or_none() is None:
         admin = User(
-            email="admin@klline.at",
+            username="admin",
             hashed_password=hash_password("klline2025"),
-            full_name="Admin",
+            full_name="Administrator",
         )
         db.add(admin)
         await db.commit()

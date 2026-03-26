@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, TrendingUp } from 'lucide-react'
+import { Plus, Search, CheckCircle } from 'lucide-react'
 import { getProjects, createProject } from '../api/projects'
 import { getCustomers, createCustomer } from '../api/customers'
 import { getSummary } from '../api/reports'
@@ -69,7 +69,7 @@ export function ProjektePage() {
       {/* Summary */}
       {summary && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <SummaryCard label="Projekte gesamt" value={String(summary.total_projects)} sub={`${summary.open_projects} offen`} />
+          <SummaryCard label="Projekte gesamt" value={String(summary.total_projects)} sub={`${summary.open_projects} offen · ${summary.completed_projects} abgeschlossen`} />
           <SummaryCard label="Gesamtumsatz" value={formatCurrency(summary.total_revenue)} />
           <SummaryCard label="Noch zu fakturieren" value={formatCurrency(summary.total_still_to_invoice)} />
           <SummaryCard
@@ -103,7 +103,7 @@ export function ProjektePage() {
                 <th className="th text-right">Umsatz</th>
                 <th className="th text-right">Einkauf</th>
                 <th className="th text-right">Deckungsbeitrag</th>
-                <th className="th text-right">Rechnungen</th>
+                <th className="th">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -120,7 +120,11 @@ export function ProjektePage() {
                   <td className={`td text-right font-semibold ${p.contribution_margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(p.contribution_margin)}
                   </td>
-                  <td className="td text-right text-gray-400">{p.invoice_count ?? 0}</td>
+                  <td className="td">
+                    {p.is_completed
+                      ? <span className="inline-flex items-center gap-1 text-xs text-green-700"><CheckCircle size={12} /> Abgeschlossen</span>
+                      : <span className="text-xs text-yellow-700">Offen</span>}
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (

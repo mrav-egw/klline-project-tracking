@@ -75,6 +75,7 @@ class PurchaseOrderRead(PurchaseOrderBase):
 class ProjectBase(BaseModel):
     name: str
     customer_id: str
+    is_completed: bool = False
 
 
 class ProjectCreate(ProjectBase):
@@ -84,6 +85,7 @@ class ProjectCreate(ProjectBase):
 class ProjectUpdate(BaseModel):
     name: str | None = None
     customer_id: str | None = None
+    is_completed: bool | None = None
 
 
 class ProjectRead(ProjectBase):

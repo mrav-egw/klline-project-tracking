@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Pencil, CheckCircle, Circle } from 'lucide-react'
 import {
   getProject, addSalesInvoice, updateSalesInvoice, deleteSalesInvoice,
-  addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, deleteProject,
+  addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, deleteProject, updateProject,
 } from '../api/projects'
 import { getSuppliers } from '../api/suppliers'
 import { formatCurrency, formatDate } from '../utils/format'
@@ -48,6 +48,10 @@ export function ProjektDetailPage() {
     mutationFn: () => deleteProject(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); navigate('/projekte') },
   })
+  const toggleDone = useMutation({
+    mutationFn: () => updateProject(id!, { is_completed: !project?.is_completed }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['project', id] }); qc.invalidateQueries({ queryKey: ['projects'] }) },
+  })
 
   if (isLoading) return <LoadingSpinner className="py-24" />
   if (!project) return <div className="p-6 text-gray-500">Projekt nicht gefunden.</div>
@@ -78,15 +82,33 @@ export function ProjektDetailPage() {
           <button onClick={() => navigate('/projekte')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-2">
             <ArrowLeft size={14} /> Zurück
           </button>
-          <h1 className="text-xl font-bold text-gray-900">{project.name}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className={`text-xl font-bold ${project.is_completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+              {project.name}
+            </h1>
+            {project.is_completed && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                <CheckCircle size={12} /> Abgeschlossen
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500">{project.customer?.name}</p>
         </div>
-        <button
-          onClick={() => { if (confirm('Projekt wirklich löschen?')) deletePrj.mutate() }}
-          className="btn-danger"
-        >
-          <Trash2 size={16} /> Löschen
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => toggleDone.mutate()}
+            disabled={toggleDone.isPending}
+            className={project.is_completed ? 'btn-secondary' : 'btn bg-green-600 text-white hover:bg-green-700'}
+          >
+            {project.is_completed ? <><Circle size={16} /> Wieder öffnen</> : <><CheckCircle size={16} /> Abschließen</>}
+          </button>
+          <button
+            onClick={() => { if (confirm('Projekt wirklich löschen?')) deletePrj.mutate() }}
+            className="btn-danger"
+          >
+            <Trash2 size={16} /> Löschen
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}

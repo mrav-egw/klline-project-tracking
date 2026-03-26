@@ -1,47 +1,112 @@
 from decimal import Decimal
 
-from sqlalchemy import extract, func, select
+from sqlalchemy import extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.cost_entry import CostCategory, CostEntry
 from app.models.project import Project, PurchaseOrder, SalesInvoice
-from app.schemas.report import DashboardSummary, VertriebsberichtReport
+from app.schemas.report import (
+    DashboardSummary,
+    ProjectPurchaseRow,
+    ProjectRevenueRow,
+    VertriebsberichtReport,
+)
 
 
 async def get_vertriebsbericht(
     db: AsyncSession, year: int, month: int | None
 ) -> VertriebsberichtReport:
-    q = select(CostEntry).where(extract("year", CostEntry.entry_date) == year)
+
+    # ── Project-derived revenue (from SalesInvoices) ─────────────────────────
+    si_q = (
+        select(SalesInvoice)
+        .join(SalesInvoice.project)
+        .options(selectinload(SalesInvoice.project).selectinload(Project.customer))
+        .where(extract("year", SalesInvoice.invoice_date) == year)
+    )
     if month is not None:
-        q = q.where(extract("month", CostEntry.entry_date) == month)
-    q = q.order_by(CostEntry.entry_date)
-    result = await db.execute(q)
-    entries = result.scalars().all()
+        si_q = si_q.where(extract("month", SalesInvoice.invoice_date) == month)
+    si_result = await db.execute(si_q)
+    invoices = si_result.scalars().all()
 
-    revenue = sum((e.revenue_net for e in entries), Decimal("0"))
-    purchases = sum((e.purchase_cost_net for e in entries), Decimal("0"))
-    other = sum((e.other_costs for e in entries), Decimal("0"))
-    profit = revenue - purchases - other
-
-    totals: dict[str, Decimal] = {}
-    for cat in CostCategory:
-        cat_entries = [e for e in entries if e.category == cat]
-        totals[cat.value] = (
-            sum((e.revenue_net for e in cat_entries), Decimal("0"))
-            - sum((e.purchase_cost_net for e in cat_entries), Decimal("0"))
-            - sum((e.other_costs for e in cat_entries), Decimal("0"))
+    revenue_rows = [
+        ProjectRevenueRow(
+            project_id=si.project_id,
+            project_name=si.project.name,
+            customer_name=si.project.customer.name if si.project.customer else "–",
+            invoice_date=si.invoice_date,
+            invoice_number=si.invoice_number,
+            net_amount=si.net_amount,
         )
+        for si in invoices
+    ]
+    project_revenue = sum((r.net_amount for r in revenue_rows), Decimal("0"))
+
+    # ── Project-derived purchases (from PurchaseOrders) ───────────────────────
+    po_q = (
+        select(PurchaseOrder)
+        .join(PurchaseOrder.project)
+        .options(
+            selectinload(PurchaseOrder.project).selectinload(Project.customer),
+            selectinload(PurchaseOrder.supplier),
+        )
+        .where(extract("year", PurchaseOrder.order_date) == year)
+    )
+    if month is not None:
+        po_q = po_q.where(extract("month", PurchaseOrder.order_date) == month)
+    po_result = await db.execute(po_q)
+    purchase_orders = po_result.scalars().all()
+
+    purchase_rows = [
+        ProjectPurchaseRow(
+            project_id=po.project_id,
+            project_name=po.project.name,
+            supplier_name=po.supplier_name_free or (po.supplier.name if po.supplier else "–"),
+            order_date=po.order_date,
+            order_amount=po.order_amount,
+        )
+        for po in purchase_orders
+    ]
+    project_purchases = sum((r.order_amount for r in purchase_rows), Decimal("0"))
+
+    # ── Manual cost entries (PAYROLL + OVERHEAD only) ─────────────────────────
+    ce_q = (
+        select(CostEntry)
+        .where(
+            CostEntry.category.in_([CostCategory.PAYROLL, CostCategory.OVERHEAD]),
+            extract("year", CostEntry.entry_date) == year,
+        )
+        .order_by(CostEntry.entry_date)
+    )
+    if month is not None:
+        ce_q = ce_q.where(extract("month", CostEntry.entry_date) == month)
+    ce_result = await db.execute(ce_q)
+    manual_entries = ce_result.scalars().all()
+
+    payroll = sum(
+        (e.other_costs for e in manual_entries if e.category == CostCategory.PAYROLL), Decimal("0")
+    )
+    overhead = sum(
+        (e.other_costs for e in manual_entries if e.category == CostCategory.OVERHEAD), Decimal("0")
+    )
+    total_other = payroll + overhead
+    profit = project_revenue - project_purchases - total_other
 
     return VertriebsberichtReport(
         year=year,
         month=month,
-        revenue_net=revenue,
-        purchase_cost_net=purchases,
-        other_costs=other,
+        project_revenue=project_revenue,
+        project_purchases=project_purchases,
+        project_revenue_rows=revenue_rows,
+        project_purchase_rows=purchase_rows,
+        payroll_costs=payroll,
+        overhead_costs=overhead,
+        manual_entries=manual_entries,
+        total_revenue=project_revenue,
+        total_purchases=project_purchases,
+        total_other_costs=total_other,
         profit=profit,
-        entries=entries,
-        totals_by_category=totals,
     )
 
 
@@ -54,22 +119,20 @@ async def get_dashboard_summary(db: AsyncSession) -> DashboardSummary:
     total_revenue = sum((p.total_sales for p in projects), Decimal("0"))
     total_purchases = sum((p.total_purchases for p in projects), Decimal("0"))
     total_still = sum((p.total_still_to_invoice for p in projects), Decimal("0"))
-    # open = projects where at least one invoice is not fully paid
     open_count = sum(
         1 for p in projects
-        if any(si.customer_payment_date is None for si in p.sales_invoices) or not p.sales_invoices
+        if not p.is_completed and (
+            any(si.customer_payment_date is None for si in p.sales_invoices) or not p.sales_invoices
+        )
     )
-
-    cost_result = await db.execute(select(CostEntry))
-    cost_entries = cost_result.scalars().all()
-    overhead = sum((e.other_costs + e.purchase_cost_net for e in cost_entries), Decimal("0"))
-    current_profit = total_revenue - total_purchases
+    completed_count = sum(1 for p in projects if p.is_completed)
 
     return DashboardSummary(
         total_projects=len(projects),
+        open_projects=open_count,
+        completed_projects=completed_count,
         total_revenue=total_revenue,
         total_purchases=total_purchases,
         total_still_to_invoice=total_still,
-        current_profit=current_profit,
-        open_projects=open_count,
+        current_profit=total_revenue - total_purchases,
     )

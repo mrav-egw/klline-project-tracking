@@ -7,7 +7,7 @@ import { login, getMe } from '../api/auth'
 import { useAuthStore } from '../store/auth'
 
 const schema = z.object({
-  email: z.string().min(1, 'Pflichtfeld'),
+  username: z.string().min(1, 'Pflichtfeld'),
   password: z.string().min(1, 'Pflichtfeld'),
 })
 type FormData = z.infer<typeof schema>
@@ -24,14 +24,13 @@ export function LoginPage() {
   const onSubmit = async (data: FormData) => {
     setError('')
     try {
-      const { access_token } = await login(data.email, data.password)
-      // Temporarily store token so getMe() can use it
+      const { access_token } = await login(data.username, data.password)
       useAuthStore.setState({ token: access_token })
       const user = await getMe()
       storeLogin(access_token, user)
       navigate('/projekte')
     } catch {
-      setError('E-Mail oder Passwort falsch.')
+      setError('Benutzername oder Passwort falsch.')
     }
   }
 
@@ -45,13 +44,13 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="label">E-Mail</label>
-            <input {...register('email')} type="email" className="input" placeholder="admin@klline.at" />
-            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
+            <label className="label">Benutzername</label>
+            <input {...register('username')} type="text" className="input" placeholder="admin" autoComplete="username" />
+            {errors.username && <p className="mt-1 text-xs text-red-600">{errors.username.message}</p>}
           </div>
           <div>
             <label className="label">Passwort</label>
-            <input {...register('password')} type="password" className="input" />
+            <input {...register('password')} type="password" className="input" autoComplete="current-password" />
             {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}

@@ -1,6 +1,6 @@
 export interface User {
   id: string
-  email: string
+  username: string
   full_name: string
   is_active: boolean
 }
@@ -46,6 +46,7 @@ export interface Project {
   id: string
   name: string
   customer_id: string
+  is_completed: boolean
   customer?: Customer
   sales_invoices: SalesInvoice[]
   purchase_orders: PurchaseOrder[]
@@ -111,22 +112,45 @@ export interface CostEntry {
   created_at: string
 }
 
+export interface ProjectRevenueRow {
+  project_id: string
+  project_name: string
+  customer_name: string
+  invoice_date?: string
+  invoice_number?: string
+  net_amount: number
+}
+
+export interface ProjectPurchaseRow {
+  project_id: string
+  project_name: string
+  supplier_name: string
+  order_date?: string
+  order_amount: number
+}
+
 export interface VertriebsberichtReport {
   year: number
   month?: number
-  revenue_net: number
-  purchase_cost_net: number
-  other_costs: number
+  project_revenue: number
+  project_purchases: number
+  project_revenue_rows: ProjectRevenueRow[]
+  project_purchase_rows: ProjectPurchaseRow[]
+  payroll_costs: number
+  overhead_costs: number
+  manual_entries: CostEntry[]
+  total_revenue: number
+  total_purchases: number
+  total_other_costs: number
   profit: number
-  entries: CostEntry[]
-  totals_by_category: Record<string, number>
 }
 
 export interface DashboardSummary {
   total_projects: number
+  open_projects: number
+  completed_projects: number
   total_revenue: number
   total_purchases: number
   total_still_to_invoice: number
   current_profit: number
-  open_projects: number
 }

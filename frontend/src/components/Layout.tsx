@@ -1,12 +1,14 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BarChart2, FolderOpen, LogOut, Truck, Wrench } from 'lucide-react'
+import { BarChart2, FolderOpen, LogOut, Truck, Wrench, Users, Building2 } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 
 const navItems = [
   { to: '/projekte', label: 'Projekte', icon: FolderOpen },
+  { to: '/kunden', label: 'Kunden', icon: Building2 },
   { to: '/vertriebsbericht', label: 'Vertriebsbericht', icon: BarChart2 },
   { to: '/lieferanten', label: 'Lieferanten', icon: Truck },
   { to: '/monteure', label: 'Monteure', icon: Wrench },
+  { to: '/benutzer', label: 'Benutzer', icon: Users },
 ]
 
 export function Layout() {
@@ -36,7 +38,7 @@ export function Layout() {
           ))}
         </nav>
         <div className="border-t border-gray-700 px-3 py-4">
-          <div className="mb-2 px-3 text-xs text-gray-400">{user?.full_name}</div>
+          <div className="mb-2 px-3 text-xs text-gray-400">{user?.full_name} ({user?.username})</div>
           <button
             onClick={logout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white"
