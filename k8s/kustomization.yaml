@@ -6,23 +6,24 @@ namespace: klline
 # Apply once before this: kubectl apply -f k8s/once/
 
 resources:
-  - base/secrets.yaml
-  - base/postgres.yaml
-  - base/redis.yaml
-  - base/minio.yaml
-  - base/backend.yaml
-  - base/celery.yaml
-  - base/frontend.yaml
-  - base/ingress.yaml
+  - routes.yaml
+  - serviceaccount.yaml
+  - secrets.yaml
+  - configmap.yaml
+  - backend/deployment.yaml
+  - backend/service.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - postgres/statefulset.yaml
+  - postgres/service.yaml
+  - redis/deployment.yaml
+  - minio/statefulset.yaml
+  - celery/worker.yaml
+  - celery/beat.yaml
 
-commonLabels:
-  app.kubernetes.io/part-of: klline
-  app.kubernetes.io/managed-by: kustomize
-
-# Override image tags via CI/CD:
-#   kustomize edit set image klline/backend=klline/backend:v1.2.3
+# Update the tag here (or via CI: kustomize edit set image ...)
 images:
-  - name: klline/backend
-    newTag: latest
-  - name: klline/frontend
-    newTag: latest
+  - name: image-registry.openshift-image-registry.svc:5000/klline/klline-backend
+    newTag: "1.0.0"
+  - name: image-registry.openshift-image-registry.svc:5000/klline/klline-frontend
+    newTag: "1.0.0"

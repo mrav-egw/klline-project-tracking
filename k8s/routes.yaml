@@ -1,0 +1,35 @@
+# OpenShift Routes
+# The /api route is listed first so HAProxy matches it before the catch-all frontend route.
+
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: klline-api
+  namespace: klline
+spec:
+  host: klline.apps.ocp.myegw.cloud
+  path: /api
+  to:
+    kind: Service
+    name: backend
+  port:
+    targetPort: 8000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: klline-frontend
+  namespace: klline
+spec:
+  host: klline.apps.ocp.myegw.cloud
+  to:
+    kind: Service
+    name: frontend
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
