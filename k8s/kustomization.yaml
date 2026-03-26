@@ -24,6 +24,6 @@ resources:
 # Update the tag here (or via CI: kustomize edit set image ...)
 images:
   - name: image-registry.openshift-image-registry.svc:5000/klline/backend
-    newTag: "1.0.0"
+    newTag: "v1.0.0"
   - name: image-registry.openshift-image-registry.svc:5000/klline/frontend
-    newTag: "1.0.0"
+    newTag: "v1.0.0"
