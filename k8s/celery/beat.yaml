@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: beat
-          image: image-registry.openshift-image-registry.svc:5000/klline/klline-backend:latest
+          image: image-registry.openshift-image-registry.svc:5000/klline/backend:latest
           command:
             - celery
             - -A

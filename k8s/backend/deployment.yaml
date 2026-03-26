@@ -15,7 +15,7 @@ spec:
     spec:
       initContainers:
         - name: wait-for-postgres
-          image: image-registry.openshift-image-registry.svc:5000/klline/klline-backend:latest
+          image: image-registry.openshift-image-registry.svc:5000/klline/backend:latest
           command:
             - sh
             - -c
@@ -30,7 +30,7 @@ spec:
                 name: klline-config
       containers:
         - name: backend
-          image: image-registry.openshift-image-registry.svc:5000/klline/klline-backend:latest
+          image: image-registry.openshift-image-registry.svc:5000/klline/backend:latest
           ports:
             - containerPort: 8000
           envFrom:

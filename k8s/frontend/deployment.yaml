@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: image-registry.openshift-image-registry.svc:5000/klline/klline-frontend:latest
+          image: image-registry.openshift-image-registry.svc:5000/klline/frontend:latest
           ports:
             - containerPort: 8080
           readinessProbe:
