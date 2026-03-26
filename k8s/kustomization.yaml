@@ -26,4 +26,4 @@ images:
   - name: image-registry.openshift-image-registry.svc:5000/klline/backend
     newTag: "v1.0.0"
   - name: image-registry.openshift-image-registry.svc:5000/klline/frontend
-    newTag: "v1.0.0"
+    newTag: "v1.0.1"
