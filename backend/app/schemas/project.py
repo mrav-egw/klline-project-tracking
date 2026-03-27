@@ -36,6 +36,7 @@ class SalesInvoiceRead(SalesInvoiceBase):
 
 
 class PurchaseOrderBase(BaseModel):
+    name: str | None = None
     supplier_id: str | None = None
     supplier_name_free: str | None = None
     order_date: date | None = None
@@ -69,6 +70,7 @@ class PurchaseOrderRead(PurchaseOrderBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    order_number: int | None = None
     project_id: str
 
 

@@ -14,6 +14,8 @@ from app.seed import seed_db
 # Columns added after initial DB creation — applied with IF NOT EXISTS so they're safe to run every startup
 _COLUMN_MIGRATIONS = [
     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_completed BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS name VARCHAR",
+    "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS order_number INTEGER",
 ]
 
 

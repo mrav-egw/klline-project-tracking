@@ -13,14 +13,20 @@ class ProjectRevenueRow(BaseModel):
     invoice_date: date | None
     invoice_number: str | None
     net_amount: Decimal
+    customer_payment_date: date | None
 
 
 class ProjectPurchaseRow(BaseModel):
+    po_id: str
+    order_number: int | None
     project_id: str
     project_name: str
+    name: str | None
     supplier_name: str
     order_date: date | None
     order_amount: Decimal
+    supplier_invoice_amount: Decimal | None
+    klline_paid: bool
 
 
 class VertriebsberichtReport(BaseModel):
@@ -39,7 +45,11 @@ class VertriebsberichtReport(BaseModel):
     total_revenue: Decimal
     total_purchases: Decimal
     total_other_costs: Decimal
+    total_supplier_invoiced: Decimal  # sum of entered Rechnungsbeträge
     profit: Decimal
+    # Global outstanding (not period-filtered)
+    noch_zu_erwartende_einnahmen: Decimal
+    noch_zu_erwartende_ausgaben: Decimal
 
 
 class DashboardSummary(BaseModel):

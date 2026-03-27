@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -180,7 +180,9 @@ async def add_purchase_order(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    po = PurchaseOrder(project_id=project_id, **body.model_dump())
+    max_result = await db.execute(select(func.max(PurchaseOrder.order_number)))
+    next_number = (max_result.scalar() or 0) + 1
+    po = PurchaseOrder(project_id=project_id, order_number=next_number, **body.model_dump())
     db.add(po)
     await db.flush()
     await db.refresh(po)

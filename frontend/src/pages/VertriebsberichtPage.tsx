@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Info } from 'lucide-react'
+import { Plus, Trash2, Info, X } from 'lucide-react'
 import { getVertriebsbericht } from '../api/reports'
 import { createCostEntry, deleteCostEntry } from '../api/costEntries'
+import { updatePurchaseOrder } from '../api/projects'
 import { formatCurrency, formatDate } from '../utils/format'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { Modal } from '../components/Modal'
@@ -17,11 +18,54 @@ const emptyEntry = (): Partial<CostEntry> => ({
   other_costs: 0, revenue_net: 0, purchase_cost_net: 0, category: 'PAYROLL',
 })
 
+function InlineAmount({
+  value,
+  onSave,
+}: {
+  value?: number
+  onSave: (v: number | null) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [local, setLocal] = useState('')
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        className="w-28 border border-blue-400 rounded px-2 py-0.5 text-right text-sm"
+        type="number"
+        step="0.01"
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={() => {
+          setEditing(false)
+          const parsed = parseFloat(local)
+          onSave(isNaN(parsed) ? null : parsed)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+          if (e.key === 'Escape') { setEditing(false) }
+        }}
+      />
+    )
+  }
+  return (
+    <span
+      onClick={() => { setLocal(value != null ? String(value) : ''); setEditing(true) }}
+      className={`cursor-pointer rounded px-1 hover:bg-blue-50 ${value != null ? 'font-medium' : 'text-gray-300 italic'}`}
+      title="Klicken zum Bearbeiten"
+    >
+      {value != null ? formatCurrency(value) : 'eingeben…'}
+    </span>
+  )
+}
+
 export function VertriebsberichtPage() {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState<number | undefined>(now.getMonth() + 1)
+  const [month, setMonth] = useState<number | undefined>(undefined)
   const [showModal, setShowModal] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
   const [form, setForm] = useState<Partial<CostEntry>>(emptyEntry())
   const qc = useQueryClient()
 
@@ -36,20 +80,24 @@ export function VertriebsberichtPage() {
     mutationFn: deleteCostEntry,
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
   })
+  const saveRechnungsbetrag = (projectId: string, poId: string, amount: number | null) => {
+    updatePurchaseOrder(projectId, poId, { supplier_invoice_amount: amount ?? undefined })
+      .then(() => qc.invalidateQueries({ queryKey: key }))
+  }
 
   const periodLabel = month
     ? `${new Date(year, month - 1).toLocaleString('de-AT', { month: 'long' })} ${year}`
     : `${year} gesamt`
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Vertriebsbericht</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Umsatz & Einkauf werden automatisch aus den Projekten berechnet.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Umsatz & Einkauf aus Projekten · Rechnungsbeträge zur Gegenkontrolle eintragbar</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary">
-          <Plus size={16} /> Lohn-/Gemeinkosten hinzufügen
+          <Plus size={16} /> Lohn-/Gemeinkosten
         </button>
       </div>
 
@@ -64,166 +112,215 @@ export function VertriebsberichtPage() {
             <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString('de-AT', { month: 'long' })}</option>
           ))}
         </select>
-        <span className="text-sm text-gray-500 font-medium">{periodLabel}</span>
+        <span className="text-sm font-medium text-gray-600">{periodLabel}</span>
       </div>
 
       {isLoading ? <LoadingSpinner className="py-12" /> : data && (
-        <div className="space-y-6">
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <div className="card p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Umsatz (aus Projekten)</p>
-              <p className="mt-1 text-xl font-bold text-blue-700">{formatCurrency(data.project_revenue)}</p>
-            </div>
-            <div className="card p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Einkauf (aus Projekten)</p>
-              <p className="mt-1 text-xl font-bold text-orange-700">{formatCurrency(data.project_purchases)}</p>
-            </div>
-            <div className="card p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Lohn + Gemeinkosten</p>
-              <p className="mt-1 text-xl font-bold text-purple-700">{formatCurrency(data.total_other_costs)}</p>
-            </div>
-            <div className="card p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Gewinn</p>
-              <p className={`mt-1 text-xl font-bold ${data.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                {formatCurrency(data.profit)}
-              </p>
-            </div>
-          </div>
+        <div className="space-y-4">
 
-          {/* Revenue from projects */}
-          <div className="card overflow-hidden border border-blue-200">
-            <div className="px-5 py-3 border-b border-blue-200 bg-blue-50 flex items-center gap-2">
-              <h3 className="font-semibold text-blue-800">Umsatz aus Projekten</h3>
-              <span className="text-xs text-blue-500 flex items-center gap-1"><Info size={12} /> automatisch</span>
+          {/* Revenue table */}
+          <div className="card overflow-hidden">
+            <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
+              <span className="text-sm font-semibold text-blue-800">Umsatz aus Projekten</span>
+              <span className="text-sm font-bold text-blue-800">{formatCurrency(data.project_revenue)}</span>
             </div>
-            <table className="w-full">
-              <thead className="bg-white">
-                <tr>
-                  <th className="th">Projekt</th>
-                  <th className="th">Kunde</th>
-                  <th className="th">Rechnungsdatum</th>
-                  <th className="th">Rechnungsnr.</th>
-                  <th className="th text-right">Betrag (netto)</th>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-gray-500 border-b border-gray-100">
+                  <th className="th py-1.5">Projekt</th>
+                  <th className="th py-1.5">Kunde</th>
+                  <th className="th py-1.5">Datum</th>
+                  <th className="th py-1.5">Rechnungsnr.</th>
+                  <th className="th py-1.5 text-right">Betrag (netto)</th>
+                  <th className="th py-1.5 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-50">
                 {data.project_revenue_rows.map((r, i) => (
-                  <tr key={i}>
-                    <td className="td font-medium">{r.project_name}</td>
-                    <td className="td text-gray-500">{r.customer_name}</td>
-                    <td className="td">{formatDate(r.invoice_date)}</td>
-                    <td className="td font-mono text-xs">{r.invoice_number ?? '–'}</td>
-                    <td className="td text-right font-medium">{formatCurrency(r.net_amount)}</td>
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="td py-1.5 font-medium">{r.project_name}</td>
+                    <td className="td py-1.5 text-gray-500">{r.customer_name}</td>
+                    <td className="td py-1.5 text-gray-500">{formatDate(r.invoice_date)}</td>
+                    <td className="td py-1.5 font-mono text-xs text-gray-400">{r.invoice_number ?? '–'}</td>
+                    <td className="td py-1.5 text-right">{formatCurrency(r.net_amount)}</td>
+                    <td className="td py-1.5 text-center">
+                      {r.customer_payment_date
+                        ? <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Bezahlt</span>
+                        : <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Offen</span>
+                      }
+                    </td>
                   </tr>
                 ))}
                 {data.project_revenue_rows.length === 0 && (
-                  <tr><td colSpan={5} className="td text-center text-gray-400 py-4">Keine Rechnungen im Zeitraum</td></tr>
-                )}
-                {data.project_revenue_rows.length > 0 && (
-                  <tr className="bg-blue-50 font-semibold">
-                    <td className="td" colSpan={4}>Gesamt</td>
-                    <td className="td text-right">{formatCurrency(data.project_revenue)}</td>
-                  </tr>
+                  <tr><td colSpan={6} className="td py-4 text-center text-gray-300">Keine Rechnungen im Zeitraum</td></tr>
                 )}
               </tbody>
             </table>
           </div>
 
-          {/* Purchases from projects */}
-          <div className="card overflow-hidden border border-orange-200">
-            <div className="px-5 py-3 border-b border-orange-200 bg-orange-50 flex items-center gap-2">
-              <h3 className="font-semibold text-orange-800">Einkauf aus Projekten</h3>
-              <span className="text-xs text-orange-500 flex items-center gap-1"><Info size={12} /> automatisch</span>
-            </div>
-            <table className="w-full">
-              <thead className="bg-white">
-                <tr>
-                  <th className="th">Projekt</th>
-                  <th className="th">Lieferant</th>
-                  <th className="th">Bestelldatum</th>
-                  <th className="th text-right">Bestellsumme</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data.project_purchase_rows.map((r, i) => (
-                  <tr key={i}>
-                    <td className="td font-medium">{r.project_name}</td>
-                    <td className="td text-gray-500">{r.supplier_name}</td>
-                    <td className="td">{formatDate(r.order_date)}</td>
-                    <td className="td text-right font-medium">{formatCurrency(r.order_amount)}</td>
-                  </tr>
-                ))}
-                {data.project_purchase_rows.length === 0 && (
-                  <tr><td colSpan={4} className="td text-center text-gray-400 py-4">Keine Bestellungen im Zeitraum</td></tr>
-                )}
-                {data.project_purchase_rows.length > 0 && (
-                  <tr className="bg-orange-50 font-semibold">
-                    <td className="td" colSpan={3}>Gesamt</td>
-                    <td className="td text-right">{formatCurrency(data.project_purchases)}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Manual cost entries (PAYROLL + OVERHEAD) */}
-          <div className="card overflow-hidden border border-purple-200">
-            <div className="px-5 py-3 border-b border-purple-200 bg-purple-50 flex items-center justify-between">
-              <h3 className="font-semibold text-purple-800">Lohn- &amp; Gemeinkosten (manuell)</h3>
-              <div className="flex gap-4 text-sm text-purple-700">
-                <span>Lohn: <strong>{formatCurrency(data.payroll_costs)}</strong></span>
-                <span>Sonstige: <strong>{formatCurrency(data.overhead_costs)}</strong></span>
+          {/* Purchase table with inline Rechnungsbetrag */}
+          <div className="card overflow-hidden">
+            <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 flex items-center justify-between">
+              <span className="text-sm font-semibold text-orange-800">Einkauf aus Projekten</span>
+              <div className="flex gap-4 text-sm">
+                <span className="text-gray-500">Bestellt: <span className="font-bold text-orange-800">{formatCurrency(data.project_purchases)}</span></span>
+                <span className="text-gray-500">Laut Rechnung: <span className="font-bold text-orange-900">{formatCurrency(data.total_supplier_invoiced)}</span></span>
               </div>
             </div>
-            <table className="w-full">
-              <thead className="bg-white">
-                <tr>
-                  <th className="th">Bezeichnung</th>
-                  <th className="th">Kategorie</th>
-                  <th className="th">Datum</th>
-                  <th className="th">Bemerkung</th>
-                  <th className="th text-right">Betrag</th>
-                  <th className="th" />
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-gray-500 border-b border-gray-100">
+                  <th className="th py-1.5">Nr.</th>
+                  <th className="th py-1.5">Bezeichnung</th>
+                  <th className="th py-1.5">Projekt</th>
+                  <th className="th py-1.5">Lieferant</th>
+                  <th className="th py-1.5">Datum</th>
+                  <th className="th py-1.5 text-right">Bestellsumme</th>
+                  <th className="th py-1.5 text-right">Rechnungsbetrag</th>
+                  <th className="th py-1.5 text-right">Differenz</th>
+                  <th className="th py-1.5 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-50">
+                {data.project_purchase_rows.map((r, i) => {
+                  const diff = r.supplier_invoice_amount != null
+                    ? r.order_amount - r.supplier_invoice_amount
+                    : null
+                  return (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="td py-1.5 font-mono text-xs text-gray-400 whitespace-nowrap">{r.order_number != null ? `B-${String(r.order_number).padStart(3, '0')}` : '–'}</td>
+                      <td className="td py-1.5 font-medium">{r.name ?? '–'}</td>
+                      <td className="td py-1.5 text-gray-500">{r.project_name}</td>
+                      <td className="td py-1.5 text-gray-500">{r.supplier_name}</td>
+                      <td className="td py-1.5 text-gray-500">{formatDate(r.order_date)}</td>
+                      <td className="td py-1.5 text-right">{formatCurrency(r.order_amount)}</td>
+                      <td className="td py-1.5 text-right">
+                        <InlineAmount
+                          value={r.supplier_invoice_amount}
+                          onSave={(v) => saveRechnungsbetrag(r.project_id, r.po_id, v)}
+                        />
+                      </td>
+                      <td className={`td py-1.5 text-right text-xs ${diff == null ? 'text-gray-300' : diff === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {diff == null ? '–' : diff === 0 ? '✓' : formatCurrency(diff)}
+                      </td>
+                      <td className="td py-1.5 text-center">
+                        {r.klline_paid
+                          ? <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Bezahlt</span>
+                          : <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Offen</span>
+                        }
+                      </td>
+                    </tr>
+                  )
+                })}
+                {data.project_purchase_rows.length === 0 && (
+                  <tr><td colSpan={9} className="td py-4 text-center text-gray-300">Keine Bestellungen im Zeitraum</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Manual cost entries */}
+          <div className="card overflow-hidden">
+            <div className="px-4 py-2 bg-purple-50 border-b border-purple-100 flex items-center justify-between">
+              <span className="text-sm font-semibold text-purple-800">Lohn- &amp; Gemeinkosten</span>
+              <span className="text-sm font-bold text-purple-800">{formatCurrency(data.total_other_costs)}</span>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-gray-500 border-b border-gray-100">
+                  <th className="th py-1.5">Bezeichnung</th>
+                  <th className="th py-1.5">Kategorie</th>
+                  <th className="th py-1.5">Datum</th>
+                  <th className="th py-1.5">Bemerkung</th>
+                  <th className="th py-1.5 text-right">Betrag</th>
+                  <th className="th py-1.5" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
                 {data.manual_entries.map((e) => (
-                  <tr key={e.id}>
-                    <td className="td font-medium">{e.name}</td>
-                    <td className="td text-xs text-gray-500">{PAYROLL_OVERHEAD_LABELS[e.category] ?? e.category}</td>
-                    <td className="td">{formatDate(e.entry_date)}</td>
-                    <td className="td text-xs text-gray-400">{e.notes ?? '–'}</td>
-                    <td className="td text-right">{formatCurrency(e.other_costs)}</td>
-                    <td className="td">
-                      <button onClick={() => { if (confirm('Löschen?')) remove.mutate(e.id) }} className="text-gray-400 hover:text-red-600">
-                        <Trash2 size={14} />
+                  <tr key={e.id} className="hover:bg-gray-50">
+                    <td className="td py-1.5 font-medium">{e.name}</td>
+                    <td className="td py-1.5 text-xs text-gray-400">{PAYROLL_OVERHEAD_LABELS[e.category] ?? e.category}</td>
+                    <td className="td py-1.5 text-gray-500">{formatDate(e.entry_date)}</td>
+                    <td className="td py-1.5 text-xs text-gray-400">{e.notes ?? '–'}</td>
+                    <td className="td py-1.5 text-right">{formatCurrency(e.other_costs)}</td>
+                    <td className="td py-1.5">
+                      <button onClick={() => { if (confirm('Löschen?')) remove.mutate(e.id) }} className="text-gray-300 hover:text-red-500">
+                        <Trash2 size={13} />
                       </button>
                     </td>
                   </tr>
                 ))}
                 {data.manual_entries.length === 0 && (
-                  <tr><td colSpan={6} className="td text-center text-gray-400 py-4">Keine manuellen Einträge im Zeitraum</td></tr>
+                  <tr><td colSpan={6} className="td py-4 text-center text-gray-300">Keine manuellen Einträge im Zeitraum</td></tr>
                 )}
               </tbody>
             </table>
           </div>
 
-          {/* Profit summary */}
-          <div className="card p-5 border-2 border-gray-300">
-            <div className="grid grid-cols-2 gap-2 text-sm max-w-sm ml-auto">
-              <span className="text-gray-600">Umsatz:</span>
-              <span className="text-right font-medium">{formatCurrency(data.project_revenue)}</span>
-              <span className="text-gray-600">− Einkauf:</span>
-              <span className="text-right font-medium text-orange-700">− {formatCurrency(data.project_purchases)}</span>
-              <span className="text-gray-600">− Lohn &amp; Kosten:</span>
-              <span className="text-right font-medium text-purple-700">− {formatCurrency(data.total_other_costs)}</span>
-              <span className="font-bold text-gray-900 border-t border-gray-300 pt-2">= Gewinn:</span>
-              <span className={`text-right font-bold border-t border-gray-300 pt-2 ${data.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                {formatCurrency(data.profit)}
-              </span>
+          {/* Bottom summary — side by side */}
+          <div className="card p-5 border-2 border-gray-200">
+            <div className="flex justify-end mb-3">
+              <button onClick={() => setShowInfo(v => !v)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+                <Info size={13} /> Erklärung der Werte
+              </button>
+            </div>
+            {showInfo && (
+              <div className="mb-4 rounded-lg bg-blue-50 border border-blue-100 p-4 text-xs text-blue-900 space-y-2 relative">
+                <button onClick={() => setShowInfo(false)} className="absolute top-2 right-2 text-blue-300 hover:text-blue-600"><X size={13} /></button>
+                <p className="font-semibold text-sm mb-1">Was fließt in die Berechnung ein?</p>
+                <p><span className="font-semibold">Umsatz (aus Projekten):</span> Summe aller Ausgangsrechnungen (Betrag netto) mit Rechnungsdatum im gewählten Zeitraum.</p>
+                <p><span className="font-semibold">Einkauf (aus Projekten):</span> Summe aller Bestellsummen mit Bestelldatum im gewählten Zeitraum.</p>
+                <p><span className="font-semibold">Lohn &amp; Kosten:</span> Manuell erfasste Lohn- und Gemeinkosteneinträge mit Datum im gewählten Zeitraum.</p>
+                <p><span className="font-semibold">Gewinn:</span> Umsatz − Einkauf − Lohn &amp; Kosten.</p>
+                <p><span className="font-semibold">Rechnungsbetrag (Gegenkontrolle):</span> Manuell im Vertriebsbericht eingegebener tatsächlicher Rechnungsbetrag vom Lieferanten. Dient zum Abgleich mit der Bestellsumme aus dem Projekt.</p>
+                <p><span className="font-semibold">Noch zu erwartende Einnahmen:</span> Summe aller Ausgangsrechnungen <em>ohne</em> Kundenzahlungsdatum (periodenübergreifend) — d.h. noch nicht bezahlte Rechnungen.</p>
+                <p><span className="font-semibold">Noch zu erwartende Ausgaben:</span> Summe aller Bestellungen, bei denen Klline noch nicht bezahlt hat (periodenübergreifend).</p>
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-6 text-sm">
+              {/* Labels */}
+              <div className="space-y-2">
+                <div className="h-6" />{/* spacer for header row */}
+                <div className="text-gray-500">Umsatz</div>
+                <div className="text-gray-500">− Einkauf</div>
+                <div className="text-gray-500">− Lohn &amp; Kosten</div>
+                <div className="font-bold text-gray-900 border-t border-gray-200 pt-2">= Gewinn</div>
+                <div className="h-3" />
+                <div className="text-gray-400 text-xs">Noch zu erwartende Einnahmen</div>
+                <div className="text-gray-400 text-xs">Noch zu erwartende Ausgaben</div>
+              </div>
+              {/* From projects */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide h-6 flex items-center">Aus Projekten</div>
+                <div className="font-medium text-blue-700">{formatCurrency(data.project_revenue)}</div>
+                <div className="font-medium text-orange-700">− {formatCurrency(data.project_purchases)}</div>
+                <div className="font-medium text-purple-700">− {formatCurrency(data.total_other_costs)}</div>
+                <div className={`font-bold border-t border-gray-200 pt-2 ${data.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {formatCurrency(data.profit)}
+                </div>
+                <div className="h-3" />
+                <div className="text-blue-600 font-medium text-xs">{formatCurrency(data.noch_zu_erwartende_einnahmen)}</div>
+                <div className="text-red-600 font-medium text-xs">{formatCurrency(data.noch_zu_erwartende_ausgaben)}</div>
+              </div>
+              {/* From actual invoices */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide h-6 flex items-center">Laut Rechnungen</div>
+                <div className="text-gray-300 text-xs italic">–</div>
+                <div className="font-medium text-orange-700">{formatCurrency(data.total_supplier_invoiced)}</div>
+                <div className="text-gray-300 text-xs italic">–</div>
+                <div className={`font-bold border-t border-gray-200 pt-2 ${
+                  data.total_supplier_invoiced === data.project_purchases ? 'text-green-600' :
+                  data.total_supplier_invoiced > 0 ? 'text-yellow-600' : 'text-gray-300'
+                }`}>
+                  {data.total_supplier_invoiced > 0
+                    ? (data.total_supplier_invoiced === data.project_purchases ? '✓ stimmt überein' : `Diff: ${formatCurrency(data.project_purchases - data.total_supplier_invoiced)}`)
+                    : '–'}
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
       )}
 
@@ -248,7 +345,10 @@ export function VertriebsberichtPage() {
             </div>
             <div>
               <label className="label">Betrag</label>
-              <input type="number" step="0.01" className="input" value={form.other_costs ?? 0} onChange={(e) => setForm(p => ({ ...p, other_costs: parseFloat(e.target.value) || 0 }))} />
+              <input type="number" step="0.01" className="input"
+                value={form.other_costs ?? ''}
+                onChange={(e) => setForm(p => ({ ...p, other_costs: e.target.value === '' ? undefined : parseFloat(e.target.value) }))}
+              />
             </div>
             <div>
               <label className="label">Bemerkung</label>

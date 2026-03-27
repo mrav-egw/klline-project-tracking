@@ -38,6 +38,7 @@ async def get_vertriebsbericht(
             invoice_date=si.invoice_date,
             invoice_number=si.invoice_number,
             net_amount=si.net_amount,
+            customer_payment_date=si.customer_payment_date,
         )
         for si in invoices
     ]
@@ -60,15 +61,24 @@ async def get_vertriebsbericht(
 
     purchase_rows = [
         ProjectPurchaseRow(
+            po_id=po.id,
+            order_number=po.order_number,
             project_id=po.project_id,
             project_name=po.project.name,
+            name=po.name,
             supplier_name=po.supplier_name_free or (po.supplier.name if po.supplier else "–"),
             order_date=po.order_date,
             order_amount=po.order_amount,
+            supplier_invoice_amount=po.supplier_invoice_amount,
+            klline_paid=po.klline_paid,
         )
         for po in purchase_orders
     ]
     project_purchases = sum((r.order_amount for r in purchase_rows), Decimal("0"))
+    total_supplier_invoiced = sum(
+        (r.supplier_invoice_amount for r in purchase_rows if r.supplier_invoice_amount is not None),
+        Decimal("0"),
+    )
 
     # ── Manual cost entries (PAYROLL + OVERHEAD only) ─────────────────────────
     ce_q = (
@@ -93,6 +103,23 @@ async def get_vertriebsbericht(
     total_other = payroll + overhead
     profit = project_revenue - project_purchases - total_other
 
+    # ── Global outstanding (no date filter) ───────────────────────────────────
+    nzf_result = await db.execute(
+        select(SalesInvoice).where(SalesInvoice.customer_payment_date.is_(None))
+    )
+    noch_zu_erwartende_einnahmen = sum(
+        (si.net_amount for si in nzf_result.scalars().all()),
+        Decimal("0"),
+    )
+
+    unpaid_result = await db.execute(
+        select(PurchaseOrder).where(PurchaseOrder.klline_paid == False)  # noqa: E712
+    )
+    noch_zu_erwartende_ausgaben = sum(
+        (po.order_amount for po in unpaid_result.scalars().all()),
+        Decimal("0"),
+    )
+
     return VertriebsberichtReport(
         year=year,
         month=month,
@@ -106,7 +133,10 @@ async def get_vertriebsbericht(
         total_revenue=project_revenue,
         total_purchases=project_purchases,
         total_other_costs=total_other,
+        total_supplier_invoiced=total_supplier_invoiced,
         profit=profit,
+        noch_zu_erwartende_einnahmen=noch_zu_erwartende_einnahmen,
+        noch_zu_erwartende_ausgaben=noch_zu_erwartende_ausgaben,
     )
 
 

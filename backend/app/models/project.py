@@ -32,6 +32,8 @@ class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    order_number: Mapped[int | None] = mapped_column(nullable=True)
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
     project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     supplier_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("suppliers.id", ondelete="SET NULL"), nullable=True
@@ -76,7 +78,10 @@ class Project(Base):
 
     @property
     def total_still_to_invoice(self) -> Decimal:
-        return sum((si.noch_zu_fakturieren for si in self.sales_invoices), Decimal("0"))
+        return sum(
+            (si.net_amount for si in self.sales_invoices if si.customer_payment_date is None),
+            Decimal("0"),
+        )
 
     @property
     def total_purchases(self) -> Decimal:

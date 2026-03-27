@@ -22,13 +22,14 @@ export interface SalesInvoice {
   invoice_number?: string
   invoice_date?: string
   net_amount: number
-  noch_zu_fakturieren: number
   customer_payment_amount?: number
   customer_payment_date?: string
 }
 
 export interface PurchaseOrder {
   id: string
+  order_number?: number
+  name?: string
   project_id: string
   supplier_id?: string
   supplier_name_free?: string
@@ -119,14 +120,20 @@ export interface ProjectRevenueRow {
   invoice_date?: string
   invoice_number?: string
   net_amount: number
+  customer_payment_date?: string
 }
 
 export interface ProjectPurchaseRow {
+  po_id: string
+  order_number?: number
   project_id: string
   project_name: string
+  name?: string
   supplier_name: string
   order_date?: string
   order_amount: number
+  supplier_invoice_amount?: number
+  klline_paid: boolean
 }
 
 export interface VertriebsberichtReport {
@@ -142,7 +149,10 @@ export interface VertriebsberichtReport {
   total_revenue: number
   total_purchases: number
   total_other_costs: number
+  total_supplier_invoiced: number
   profit: number
+  noch_zu_erwartende_einnahmen: number
+  noch_zu_erwartende_ausgaben: number
 }
 
 export interface DashboardSummary {
