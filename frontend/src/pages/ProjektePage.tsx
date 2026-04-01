@@ -121,9 +121,21 @@ export function ProjektePage() {
                     {formatCurrency(p.contribution_margin)}
                   </td>
                   <td className="td">
-                    {p.is_completed
-                      ? <span className="inline-flex items-center gap-1 text-xs text-green-700"><CheckCircle size={12} /> Abgeschlossen</span>
-                      : <span className="text-xs text-yellow-700">Offen</span>}
+                    <div className="flex flex-wrap items-center gap-1">
+                      {p.is_completed
+                        ? <span className="inline-flex items-center gap-1 text-xs text-green-700"><CheckCircle size={12} /> Abgeschlossen</span>
+                        : <span className="text-xs text-yellow-700">Offen</span>}
+                      {p.unpaid_rechnungen_count > 0 && (
+                        <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                          {p.unpaid_rechnungen_count} RE offen
+                        </span>
+                      )}
+                      {p.unpaid_bestellungen_count > 0 && (
+                        <span className="inline-flex items-center rounded-full bg-red-50 border border-red-200 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
+                          {p.unpaid_bestellungen_count} PO offen
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

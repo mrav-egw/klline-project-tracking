@@ -113,6 +113,18 @@ export function ProjektDetailPage() {
             )}
           </div>
           <p className="text-sm text-gray-500">{project.customer?.name}</p>
+          <div className="flex gap-1.5 mt-1.5">
+            {project.unpaid_rechnungen_count > 0 && (
+              <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                {project.unpaid_rechnungen_count} {project.unpaid_rechnungen_count === 1 ? 'Rechnung' : 'Rechnungen'} offen
+              </span>
+            )}
+            {project.unpaid_bestellungen_count > 0 && (
+              <span className="inline-flex items-center rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                {project.unpaid_bestellungen_count} {project.unpaid_bestellungen_count === 1 ? 'Bestellung' : 'Bestellungen'} unbezahlt
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
           <button

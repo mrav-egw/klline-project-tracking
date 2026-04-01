@@ -36,6 +36,10 @@ _LOAD = [
 
 
 def _enrich(p: Project) -> dict:
+    unpaid_re = sum(
+        1 for a in p.angebote for r in a.rechnungen if r.customer_payment_date is None
+    )
+    unpaid_po = sum(1 for po in p.purchase_orders if not po.klline_paid)
     return {
         **{c.name: getattr(p, c.name) for c in p.__table__.columns},
         "customer": p.customer,
@@ -45,6 +49,8 @@ def _enrich(p: Project) -> dict:
         "total_sales": p.total_sales,
         "total_purchases": p.total_purchases,
         "total_still_to_invoice": p.total_still_to_invoice,
+        "unpaid_rechnungen_count": unpaid_re,
+        "unpaid_bestellungen_count": unpaid_po,
         "invoice_count": len(p.sales_invoices),
         "purchase_order_count": len(p.purchase_orders),
     }

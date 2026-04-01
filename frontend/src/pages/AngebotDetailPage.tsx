@@ -125,6 +125,24 @@ export function AngebotDetailPage() {
             </span>
           </div>
           {angebot.angebot_date && <p className="text-sm text-gray-500">Datum: {formatDate(angebot.angebot_date)}</p>}
+          {locked && angebot.rechnungen.length > 0 && (() => {
+            const unpaid = angebot.rechnungen.filter(r => !r.customer_payment_date).length
+            const paid = angebot.rechnungen.filter(r => !!r.customer_payment_date).length
+            return (
+              <div className="flex gap-1.5 mt-1">
+                {unpaid > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                    {unpaid} {unpaid === 1 ? 'Rechnung' : 'Rechnungen'} offen
+                  </span>
+                )}
+                {paid > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                    {paid} bezahlt
+                  </span>
+                )}
+              </div>
+            )
+          })()}
         </div>
         <div className="flex gap-2">
           {!locked && (

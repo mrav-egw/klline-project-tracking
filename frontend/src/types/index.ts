@@ -67,6 +67,8 @@ export interface Project {
   total_sales: number
   total_purchases: number
   total_still_to_invoice: number
+  unpaid_rechnungen_count: number
+  unpaid_bestellungen_count: number
   invoice_count?: number
   purchase_order_count?: number
   created_at: string

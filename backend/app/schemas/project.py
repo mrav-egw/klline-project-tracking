@@ -101,6 +101,8 @@ class ProjectRead(ProjectBase):
     total_sales: Decimal
     total_purchases: Decimal
     total_still_to_invoice: Decimal
+    unpaid_rechnungen_count: int = 0
+    unpaid_bestellungen_count: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -114,6 +116,8 @@ class ProjectListRead(ProjectBase):
     total_sales: Decimal
     total_purchases: Decimal
     total_still_to_invoice: Decimal
+    unpaid_rechnungen_count: int = 0
+    unpaid_bestellungen_count: int = 0
     invoice_count: int
     purchase_order_count: int
     created_at: datetime
