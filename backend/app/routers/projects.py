@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.deps import get_current_user
+from app.models.angebot import Angebot
 from app.models.project import Project, PurchaseOrder, SalesInvoice
 from app.schemas.project import (
     ProjectCreate,
@@ -27,6 +28,8 @@ _LOAD = [
     selectinload(Project.customer),
     selectinload(Project.sales_invoices),
     selectinload(Project.purchase_orders),
+    selectinload(Project.angebote).selectinload(Angebot.positions),
+    selectinload(Project.angebote).selectinload(Angebot.rechnungen),
 ]
 
 

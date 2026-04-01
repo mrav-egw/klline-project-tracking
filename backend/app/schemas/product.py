@@ -9,6 +9,7 @@ class ProductBase(BaseModel):
     description: str | None = None
     listenpreis: Decimal = Decimal("0")
     einheit: str = "Stk"
+    supplier_id: str | None = None
 
 
 class ProductCreate(ProductBase):
@@ -20,6 +21,7 @@ class ProductUpdate(BaseModel):
     description: str | None = None
     listenpreis: Decimal | None = None
     einheit: str | None = None
+    supplier_id: str | None = None
 
 
 class ProductRead(ProductBase):

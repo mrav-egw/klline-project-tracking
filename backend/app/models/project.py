@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.customer import Customer
     from app.models.supplier import Supplier
     from app.models.angebot import Angebot
+    from app.models.rechnung import Rechnung
 
 
 class SalesInvoice(Base):
@@ -76,16 +77,26 @@ class Project(Base):
         "Angebot", back_populates="project", cascade="all, delete-orphan"
     )
 
+    def _all_rechnungen(self) -> list["Rechnung"]:
+        rechnungen = []
+        for a in self.angebote:
+            rechnungen.extend(a.rechnungen)
+        return rechnungen
+
     @property
     def total_sales(self) -> Decimal:
-        return sum((si.net_amount for si in self.sales_invoices), Decimal("0"))
+        """Sum of all Rechnungen (Abschlag + Schluss) netto amounts."""
+        return sum((r.total_netto for r in self._all_rechnungen()), Decimal("0"))
 
     @property
     def total_still_to_invoice(self) -> Decimal:
-        return sum(
-            (si.net_amount for si in self.sales_invoices if si.customer_payment_date is None),
-            Decimal("0"),
-        )
+        """Angebot total minus already invoiced, for accepted Angebote."""
+        still = Decimal("0")
+        for a in self.angebote:
+            if a.status.value == "AKZEPTIERT":
+                invoiced = sum((r.total_netto for r in a.rechnungen), Decimal("0"))
+                still += a.total_netto - invoiced
+        return still
 
     @property
     def total_purchases(self) -> Decimal:

@@ -17,6 +17,7 @@ _COLUMN_MIGRATIONS = [
     "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS name VARCHAR",
     "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS order_number INTEGER",
     "ALTER TABLE customers ADD COLUMN IF NOT EXISTS ust_pct NUMERIC(5,2) NOT NULL DEFAULT 20.00",
+    "ALTER TABLE products ADD COLUMN IF NOT EXISTS supplier_id VARCHAR REFERENCES suppliers(id) ON DELETE SET NULL",
 ]
 
 
@@ -31,10 +32,10 @@ async def lifespan(app: FastAPI):
     # Ensure number sequences exist
     async with AsyncSessionLocal() as db:
         from app.models.number_sequence import NumberSequence
-        for seq_id, prefix in [("AN", "AN-"), ("RE", "RE-")]:
+        for seq_id, prefix, start in [("AN", "AN-", 2500), ("RE", "RE-", 2660)]:
             result = await db.execute(text(f"SELECT id FROM number_sequences WHERE id = '{seq_id}'"))
             if result.scalar_one_or_none() is None:
-                db.add(NumberSequence(id=seq_id, prefix=prefix, current_value=0))
+                db.add(NumberSequence(id=seq_id, prefix=prefix, current_value=start))
         await db.commit()
     async with AsyncSessionLocal() as db:
         await ensure_admin_user(db)

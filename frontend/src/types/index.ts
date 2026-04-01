@@ -23,6 +23,7 @@ export interface Product {
   description?: string
   listenpreis: number
   einheit: string
+  supplier_id?: string
   created_at: string
   updated_at: string
 }

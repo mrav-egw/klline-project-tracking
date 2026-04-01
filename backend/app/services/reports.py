@@ -4,8 +4,10 @@ from sqlalchemy import extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.angebot import Angebot
 from app.models.cost_entry import CostCategory, CostEntry
-from app.models.project import Project, PurchaseOrder, SalesInvoice
+from app.models.project import Project, PurchaseOrder
+from app.models.rechnung import Rechnung
 from app.schemas.report import (
     DashboardSummary,
     ProjectPurchaseRow,
@@ -18,29 +20,32 @@ async def get_vertriebsbericht(
     db: AsyncSession, year: int, month: int | None
 ) -> VertriebsberichtReport:
 
-    # ── Project-derived revenue (from SalesInvoices) ─────────────────────────
-    si_q = (
-        select(SalesInvoice)
-        .join(SalesInvoice.project)
-        .options(selectinload(SalesInvoice.project).selectinload(Project.customer))
-        .where(extract("year", SalesInvoice.invoice_date) == year)
+    # ── Project-derived revenue (from Rechnungen) ────────────────────────────
+    r_q = (
+        select(Rechnung)
+        .join(Rechnung.angebot)
+        .join(Angebot.project)
+        .options(
+            selectinload(Rechnung.angebot).selectinload(Angebot.project).selectinload(Project.customer),
+        )
+        .where(extract("year", Rechnung.rechnung_date) == year)
     )
     if month is not None:
-        si_q = si_q.where(extract("month", SalesInvoice.invoice_date) == month)
-    si_result = await db.execute(si_q)
-    invoices = si_result.scalars().all()
+        r_q = r_q.where(extract("month", Rechnung.rechnung_date) == month)
+    r_result = await db.execute(r_q)
+    rechnungen = r_result.scalars().all()
 
     revenue_rows = [
         ProjectRevenueRow(
-            project_id=si.project_id,
-            project_name=si.project.name,
-            customer_name=si.project.customer.name if si.project.customer else "–",
-            invoice_date=si.invoice_date,
-            invoice_number=si.invoice_number,
-            net_amount=si.net_amount,
-            customer_payment_date=si.customer_payment_date,
+            project_id=r.project_id,
+            project_name=r.angebot.project.name,
+            customer_name=r.angebot.project.customer.name if r.angebot.project.customer else "–",
+            invoice_date=r.rechnung_date,
+            invoice_number=r.rechnung_number,
+            net_amount=r.total_netto,
+            customer_payment_date=r.customer_payment_date,
         )
-        for si in invoices
+        for r in rechnungen
     ]
     project_revenue = sum((r.net_amount for r in revenue_rows), Decimal("0"))
 
@@ -104,11 +109,12 @@ async def get_vertriebsbericht(
     profit = project_revenue - project_purchases - total_other
 
     # ── Global outstanding (no date filter) ───────────────────────────────────
-    nzf_result = await db.execute(
-        select(SalesInvoice).where(SalesInvoice.customer_payment_date.is_(None))
+    # Noch zu erwartende Einnahmen: Rechnungen without customer payment
+    unpaid_rechnungen = await db.execute(
+        select(Rechnung).where(Rechnung.customer_payment_date.is_(None))
     )
     noch_zu_erwartende_einnahmen = sum(
-        (si.net_amount for si in nzf_result.scalars().all()),
+        (r.total_netto for r in unpaid_rechnungen.scalars().all()),
         Decimal("0"),
     )
 
@@ -142,19 +148,18 @@ async def get_vertriebsbericht(
 
 async def get_dashboard_summary(db: AsyncSession) -> DashboardSummary:
     projects_result = await db.execute(
-        select(Project).options(selectinload(Project.sales_invoices), selectinload(Project.purchase_orders))
+        select(Project).options(
+            selectinload(Project.purchase_orders),
+            selectinload(Project.angebote).selectinload(Angebot.positions),
+            selectinload(Project.angebote).selectinload(Angebot.rechnungen),
+        )
     )
     projects = projects_result.scalars().all()
 
     total_revenue = sum((p.total_sales for p in projects), Decimal("0"))
     total_purchases = sum((p.total_purchases for p in projects), Decimal("0"))
     total_still = sum((p.total_still_to_invoice for p in projects), Decimal("0"))
-    open_count = sum(
-        1 for p in projects
-        if not p.is_completed and (
-            any(si.customer_payment_date is None for si in p.sales_invoices) or not p.sales_invoices
-        )
-    )
+    open_count = sum(1 for p in projects if not p.is_completed)
     completed_count = sum(1 for p in projects if p.is_completed)
 
     return DashboardSummary(

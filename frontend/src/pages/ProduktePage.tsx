@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, Search } from 'lucide-react'
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../api/products'
+import { getSuppliers } from '../api/suppliers'
 import { formatCurrency } from '../utils/format'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { Modal } from '../components/Modal'
@@ -15,6 +16,7 @@ export function ProduktePage() {
   const [modal, setModal] = useState<{ open: boolean; data: Partial<Product>; editId?: string }>({ open: false, data: emptyProduct() })
 
   const { data: products, isLoading } = useQuery({ queryKey: ['products'], queryFn: getProducts })
+  const { data: suppliers } = useQuery({ queryKey: ['suppliers'], queryFn: getSuppliers })
 
   const save = useMutation({
     mutationFn: () => modal.editId ? updateProduct(modal.editId, modal.data) : createProduct(modal.data),
@@ -54,6 +56,7 @@ export function ProduktePage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="th">Name</th>
+                <th className="th">Lieferant</th>
                 <th className="th">Beschreibung</th>
                 <th className="th text-right">Listenpreis</th>
                 <th className="th">Einheit</th>
@@ -64,6 +67,7 @@ export function ProduktePage() {
               {filtered.map((p) => (
                 <tr key={p.id}>
                   <td className="td font-medium">{p.name}</td>
+                  <td className="td text-gray-500 text-xs">{suppliers?.find(s => s.id === p.supplier_id)?.name ?? '–'}</td>
                   <td className="td text-gray-500 max-w-md">
                     <span className="line-clamp-2 text-xs">{p.description ?? '–'}</span>
                   </td>
@@ -78,7 +82,7 @@ export function ProduktePage() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="td text-center text-gray-400 py-6">Keine Produkte gefunden</td></tr>
+                <tr><td colSpan={6} className="td text-center text-gray-400 py-6">Keine Produkte gefunden</td></tr>
               )}
             </tbody>
           </table>
@@ -94,6 +98,14 @@ export function ProduktePage() {
                 value={modal.data.name ?? ''}
                 onChange={(e) => setModal(prev => ({ ...prev, data: { ...prev.data, name: e.target.value } }))}
               />
+            </div>
+            <div>
+              <label className="label">Lieferant (intern)</label>
+              <select className="input" value={modal.data.supplier_id ?? ''}
+                onChange={(e) => setModal(prev => ({ ...prev, data: { ...prev.data, supplier_id: e.target.value || undefined } }))}>
+                <option value="">– Kein –</option>
+                {(suppliers ?? []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
             </div>
             <div>
               <label className="label">Listenpreis (netto)</label>
