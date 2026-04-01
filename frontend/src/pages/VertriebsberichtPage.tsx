@@ -300,7 +300,7 @@ export function VertriebsberichtPage() {
                   {formatCurrency(data.profit)}
                 </div>
                 <div className="h-3" />
-                <div className="relative group inline-block">
+                <div className="relative group">
                   <span className="text-blue-600 font-medium text-xs cursor-help border-b border-dashed border-blue-300">
                     {formatCurrency(data.noch_zu_erwartende_einnahmen)}
                   </span>
@@ -318,7 +318,7 @@ export function VertriebsberichtPage() {
                     </div>
                   )}
                 </div>
-                <div className="relative group inline-block">
+                <div className="relative group">
                   <span className="text-red-600 font-medium text-xs cursor-help border-b border-dashed border-red-300">
                     {formatCurrency(data.noch_zu_erwartende_ausgaben)}
                   </span>
