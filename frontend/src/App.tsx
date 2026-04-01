@@ -10,6 +10,8 @@ import { VertriebsberichtPage } from './pages/VertriebsberichtPage'
 import { LieferantenPage } from './pages/LieferantenPage'
 import { MonturePage } from './pages/MonturePage'
 import { BenutzerPage } from './pages/BenutzerPage'
+import { ProduktePage } from './pages/ProduktePage'
+import { AngebotDetailPage } from './pages/AngebotDetailPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -31,6 +33,8 @@ export default function App() {
             <Route index element={<Navigate to="/projekte" replace />} />
             <Route path="projekte" element={<ProjektePage />} />
             <Route path="projekte/:id" element={<ProjektDetailPage />} />
+            <Route path="projekte/:id/angebote/:angebotId" element={<AngebotDetailPage />} />
+            <Route path="produkte" element={<ProduktePage />} />
             <Route path="kunden" element={<KundenPage />} />
             <Route path="vertriebsbericht" element={<VertriebsberichtPage />} />
             <Route path="lieferanten" element={<LieferantenPage />} />

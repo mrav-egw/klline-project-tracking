@@ -11,6 +11,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.customer import Customer
     from app.models.supplier import Supplier
+    from app.models.angebot import Angebot
 
 
 class SalesInvoice(Base):
@@ -70,6 +71,9 @@ class Project(Base):
     )
     purchase_orders: Mapped[list["PurchaseOrder"]] = relationship(
         "PurchaseOrder", back_populates="project", cascade="all, delete-orphan"
+    )
+    angebote: Mapped[list["Angebot"]] = relationship(
+        "Angebot", back_populates="project", cascade="all, delete-orphan"
     )
 
     @property

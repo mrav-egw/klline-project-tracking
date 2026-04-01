@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -9,6 +10,7 @@ class CustomerBase(BaseModel):
     email: str | None = None
     phone: str | None = None
     notes: str | None = None
+    ust_pct: Decimal = Decimal("20.00")
 
 
 class CustomerCreate(CustomerBase):
@@ -21,6 +23,7 @@ class CustomerUpdate(BaseModel):
     email: str | None = None
     phone: str | None = None
     notes: str | None = None
+    ust_pct: Decimal | None = None
 
 
 class CustomerRead(CustomerBase):

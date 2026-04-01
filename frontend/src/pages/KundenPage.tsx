@@ -119,6 +119,7 @@ export function KundenPage() {
               {selected.email && <p className="text-sm text-gray-600">{selected.email}</p>}
               {selected.phone && <p className="text-sm text-gray-600">{selected.phone}</p>}
               {selected.notes && <p className="text-sm text-gray-500 italic">{selected.notes}</p>}
+              <p className="text-sm text-gray-600">USt: {selected.ust_pct ?? 20}%</p>
 
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">Projekte ({customerProjects.length})</h3>
@@ -163,6 +164,16 @@ export function KundenPage() {
                 />
               </div>
             ))}
+            <div>
+              <label className="label">USt-Satz (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={modal.data.ust_pct ?? 20}
+                onChange={(e) => setModal(prev => ({ ...prev, data: { ...prev.data, ust_pct: parseFloat(e.target.value) || 20 } }))}
+              />
+            </div>
             <div>
               <label className="label">Notizen</label>
               <textarea

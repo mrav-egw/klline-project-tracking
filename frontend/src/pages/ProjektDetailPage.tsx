@@ -1,21 +1,21 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Trash2, Pencil, CheckCircle, Circle } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Pencil, CheckCircle, Circle, FileText } from 'lucide-react'
 import {
-  getProject, addSalesInvoice, updateSalesInvoice, deleteSalesInvoice,
+  getProject,
   addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, deleteProject, updateProject,
 } from '../api/projects'
+import { getAngebote, createAngebot, deleteAngebot } from '../api/angebote'
 import { getSuppliers } from '../api/suppliers'
 import { formatCurrency, formatDate } from '../utils/format'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { Modal } from '../components/Modal'
 import { StatusBadge } from '../components/StatusBadge'
-import type { SalesInvoice, PurchaseOrder } from '../types'
+import type { PurchaseOrder } from '../types'
 
-type Tab = 'invoices' | 'orders'
+type Tab = 'angebote' | 'orders'
 
-const emptyInvoice = (): Partial<SalesInvoice> => ({})
 const emptyOrder = (): Partial<PurchaseOrder> => ({ klline_paid: false })
 
 function numVal(v: unknown): string {
@@ -33,25 +33,27 @@ export function ProjektDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const [tab, setTab] = useState<Tab>('invoices')
-  const [invoiceModal, setInvoiceModal] = useState<{ open: boolean; data: Partial<SalesInvoice>; editId?: string }>({ open: false, data: emptyInvoice() })
+  const [tab, setTab] = useState<Tab>('angebote')
   const [orderModal, setOrderModal] = useState<{ open: boolean; data: Partial<PurchaseOrder>; editId?: string }>({ open: false, data: emptyOrder() })
-
   const { data: project, isLoading } = useQuery({ queryKey: ['project', id], queryFn: () => getProject(id!) })
   const { data: suppliers } = useQuery({ queryKey: ['suppliers'], queryFn: getSuppliers })
+  const { data: angebote } = useQuery({ queryKey: ['angebote', id], queryFn: () => getAngebote(id!) })
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['project', id] })
+    qc.invalidateQueries({ queryKey: ['angebote', id] })
     qc.invalidateQueries({ queryKey: ['vertriebsbericht'] })
     qc.invalidateQueries({ queryKey: ['summary'] })
   }
 
-  const addInvoice = useMutation({ mutationFn: (d: Partial<SalesInvoice>) => addSalesInvoice(id!, d), onSuccess: invalidate })
-  const editInvoice = useMutation({
-    mutationFn: ({ siId, d }: { siId: string; d: Partial<SalesInvoice> }) => updateSalesInvoice(id!, siId, d),
+  const doCreateAngebot = useMutation({
+    mutationFn: () => createAngebot(id!, { angebot_date: new Date().toISOString().slice(0, 10) }),
+    onSuccess: (a) => { invalidate(); navigate(`/projekte/${id}/angebote/${a.id}`) },
+  })
+  const doDeleteAngebot = useMutation({
+    mutationFn: (angebotId: string) => deleteAngebot(id!, angebotId),
     onSuccess: invalidate,
   })
-  const removeInvoice = useMutation({ mutationFn: (siId: string) => deleteSalesInvoice(id!, siId), onSuccess: invalidate })
 
   const addOrder = useMutation({ mutationFn: (d: Partial<PurchaseOrder>) => addPurchaseOrder(id!, d), onSuccess: invalidate })
   const editOrder = useMutation({
@@ -75,40 +77,6 @@ export function ProjektDetailPage() {
   if (isLoading) return <LoadingSpinner className="py-24" />
   if (!project) return <div className="p-6 text-gray-500">Projekt nicht gefunden.</div>
 
-  const incrementNumber = (nr: string | undefined): string | undefined => {
-    if (!nr) return undefined
-    const match = nr.match(/^(.*?)(\d+)$/)
-    if (!match) return undefined
-    return `${match[1]}${String(parseInt(match[2], 10) + 1).padStart(match[2].length, '0')}`
-  }
-
-  const getNextInvoiceNumber = (): string | undefined => {
-    const withNr = project.sales_invoices.filter(si => si.invoice_number)
-    if (withNr.length === 0) return undefined
-    return incrementNumber(withNr[withNr.length - 1].invoice_number)
-  }
-
-  const saveInvoice = async () => {
-    const d = invoiceModal.data
-    const paid = d.customer_payment_amount ?? 0
-    const total = d.net_amount ?? 0
-    const isPartial = !!invoiceModal.editId && paid > 0 && paid < total
-
-    setInvoiceModal({ open: false, data: emptyInvoice() })
-
-    if (isPartial) {
-      // Update original: net_amount = paid amount, keep payment info
-      await editInvoice.mutateAsync({ siId: invoiceModal.editId!, d: { ...d, net_amount: paid } })
-      // Auto-create remainder invoice with incremented number
-      await addInvoice.mutateAsync({ net_amount: total - paid, invoice_date: d.invoice_date, invoice_number: incrementNumber(d.invoice_number) })
-    } else if (invoiceModal.editId) {
-      await editInvoice.mutateAsync({ siId: invoiceModal.editId, d })
-    } else {
-      await addInvoice.mutateAsync(d)
-    }
-    invalidate()
-  }
-
   const saveOrder = async () => {
     const d = orderModal.data
     setOrderModal({ open: false, data: emptyOrder() })
@@ -117,13 +85,6 @@ export function ProjektDetailPage() {
     } else {
       await addOrder.mutateAsync(d)
     }
-  }
-
-  const setInvoiceField = (field: keyof SalesInvoice, raw: string, isNum: boolean) => {
-    setInvoiceModal(prev => ({
-      ...prev,
-      data: { ...prev.data, [field]: isNum ? parseNum(raw) : (raw || undefined) },
-    }))
   }
 
   const setOrderField = (field: keyof PurchaseOrder, raw: string, isNum: boolean) => {
@@ -192,7 +153,7 @@ export function ProjektDetailPage() {
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="flex gap-6">
-          {([['invoices', 'Ausgangsrechnungen'], ['orders', 'Bestellungen / Einkauf']] as const).map(
+          {([['angebote', 'Angebote & Rechnungen'], ['orders', 'Bestellungen / Einkauf']] as const).map(
             ([key, label]) => (
               <button
                 key={key}
@@ -208,52 +169,61 @@ export function ProjektDetailPage() {
         </nav>
       </div>
 
-      {/* Sales Invoices Tab */}
-      {tab === 'invoices' && (
+      {/* Angebote Tab */}
+      {tab === 'angebote' && (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <button onClick={() => setInvoiceModal({ open: true, data: { invoice_number: getNextInvoiceNumber() } })} className="btn-primary">
-              <Plus size={16} /> Rechnung hinzufügen
+            <button onClick={() => doCreateAngebot.mutate()} className="btn-primary" disabled={doCreateAngebot.isPending}>
+              <Plus size={16} /> Neues Angebot
             </button>
           </div>
-          <div className="card overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="th">Rechnungsnr.</th>
-                  <th className="th">Datum</th>
-                  <th className="th text-right">Betrag (netto)</th>
-                  <th className="th text-right">Kunde bezahlt</th>
-                  <th className="th text-right">Bezahlt am</th>
-                  <th className="th" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {project.sales_invoices.map((si) => (
-                  <tr key={si.id}>
-                    <td className="td font-mono text-xs">{si.invoice_number ?? '–'}</td>
-                    <td className="td">{formatDate(si.invoice_date)}</td>
-                    <td className="td text-right">{formatCurrency(si.net_amount)}</td>
-                    <td className="td text-right">
-                      <StatusBadge paid={!!si.customer_payment_date || !!si.customer_payment_amount} />
-                    </td>
-                    <td className="td text-right">{formatDate(si.customer_payment_date)}</td>
-                    <td className="td text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => setInvoiceModal({ open: true, data: { ...si }, editId: si.id })}
-                          className="text-gray-400 hover:text-blue-600"><Pencil size={14} /></button>
-                        <button onClick={() => { if (confirm('Löschen?')) removeInvoice.mutate(si.id) }}
-                          className="text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
-                      </div>
-                    </td>
+          {(angebote ?? []).length > 0 ? (
+            <div className="card overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="th">Nr.</th>
+                    <th className="th">Datum</th>
+                    <th className="th">Status</th>
+                    <th className="th text-right">Positionen</th>
+                    <th className="th text-right">Betrag (netto)</th>
+                    <th className="th" />
                   </tr>
-                ))}
-                {project.sales_invoices.length === 0 && (
-                  <tr><td colSpan={6} className="td text-center text-gray-400 py-6">Keine Rechnungen</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(angebote ?? []).map((a) => (
+                    <tr key={a.id} className="cursor-pointer hover:bg-gray-50" onClick={() => navigate(`/projekte/${id}/angebote/${a.id}`)}>
+                      <td className="td font-mono text-xs font-bold text-blue-600">{a.angebot_number}</td>
+                      <td className="td">{formatDate(a.angebot_date)}</td>
+                      <td className="td">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          a.status === 'AKZEPTIERT' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {a.status === 'AKZEPTIERT' ? 'Akzeptiert' : 'Entwurf'}
+                        </span>
+                      </td>
+                      <td className="td text-right">{a.position_count}</td>
+                      <td className="td text-right font-medium">{formatCurrency(a.total_netto)}</td>
+                      <td className="td" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => navigate(`/projekte/${id}/angebote/${a.id}`)}
+                            className="text-gray-400 hover:text-blue-600"><FileText size={14} /></button>
+                          {a.status !== 'AKZEPTIERT' && (
+                            <button onClick={() => { if (confirm('Angebot löschen?')) doDeleteAngebot.mutate(a.id) }}
+                              className="text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="card p-8 text-center text-gray-400">
+              Noch keine Angebote. Erstellen Sie ein neues Angebot.
+            </div>
+          )}
         </div>
       )}
 
@@ -314,39 +284,6 @@ export function ProjektDetailPage() {
             </table>
           </div>
         </div>
-      )}
-
-      {/* Invoice Modal */}
-      {invoiceModal.open && (
-        <Modal title={invoiceModal.editId ? 'Rechnung bearbeiten' : 'Rechnung hinzufügen'} onClose={() => setInvoiceModal({ open: false, data: emptyInvoice() })}>
-          <div className="space-y-4">
-            {(['invoice_number', 'invoice_date', 'net_amount', 'customer_payment_amount', 'customer_payment_date'] as const).map((field) => {
-              const labels: Record<string, string> = {
-                invoice_number: 'Rechnungsnummer', invoice_date: 'Rechnungsdatum',
-                net_amount: 'Betrag (netto)',
-                customer_payment_amount: 'Kundenzahlung (Betrag)', customer_payment_date: 'Bezahlt am',
-              }
-              const isDate = field.endsWith('_date')
-              const isNum = ['net_amount', 'customer_payment_amount'].includes(field)
-              return (
-                <div key={field}>
-                  <label className="label">{labels[field]}</label>
-                  <input
-                    className="input"
-                    type={isDate ? 'date' : isNum ? 'number' : 'text'}
-                    step={isNum ? '0.01' : undefined}
-                    value={numVal(invoiceModal.data[field])}
-                    onChange={(e) => setInvoiceField(field, e.target.value, isNum)}
-                  />
-                </div>
-              )
-            })}
-            <div className="flex justify-end gap-3 pt-2">
-              <button className="btn-secondary" onClick={() => setInvoiceModal({ open: false, data: emptyInvoice() })}>Abbrechen</button>
-              <button className="btn-primary" onClick={saveInvoice}>Speichern</button>
-            </div>
-          </div>
-        </Modal>
       )}
 
       {/* Order Modal */}

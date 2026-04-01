@@ -12,6 +12,17 @@ export interface Customer {
   email?: string
   phone?: string
   notes?: string
+  ust_pct: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Product {
+  id: string
+  name: string
+  description?: string
+  listenpreis: number
+  einheit: string
   created_at: string
   updated_at: string
 }
@@ -153,6 +164,69 @@ export interface VertriebsberichtReport {
   profit: number
   noch_zu_erwartende_einnahmen: number
   noch_zu_erwartende_ausgaben: number
+}
+
+// ── Angebote & Rechnungen ────────────────────────────────────────────────────
+
+export interface AngebotPositionGroup {
+  id: string
+  name: string
+  sort_order: number
+}
+
+export interface AngebotPosition {
+  id: string
+  group_id?: string
+  product_id: string
+  product: Product
+  position_number: number
+  description_override?: string
+  menge: number
+  einzelpreis: number
+  rabatt_pct: number
+  gesamtpreis: number
+  rabatt_amount: number
+  netto_amount: number
+  sort_order: number
+}
+
+export interface Angebot {
+  id: string
+  project_id: string
+  angebot_number: string
+  angebot_date?: string
+  status: 'ENTWURF' | 'AKZEPTIERT'
+  total_netto: number
+  groups: AngebotPositionGroup[]
+  positions: AngebotPosition[]
+  rechnungen: Rechnung[]
+  created_at: string
+  updated_at: string
+}
+
+export interface AngebotListItem {
+  id: string
+  project_id: string
+  angebot_number: string
+  angebot_date?: string
+  status: 'ENTWURF' | 'AKZEPTIERT'
+  total_netto: number
+  position_count: number
+  created_at: string
+}
+
+export interface Rechnung {
+  id: string
+  angebot_id: string
+  project_id: string
+  rechnung_number: string
+  rechnung_date?: string
+  rechnung_type: 'ABSCHLAG' | 'SCHLUSS'
+  abschlag_pct?: number
+  total_netto: number
+  customer_payment_amount?: number
+  customer_payment_date?: string
+  created_at: string
 }
 
 export interface DashboardSummary {

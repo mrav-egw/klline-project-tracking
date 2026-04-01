@@ -7,7 +7,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.database import AsyncSessionLocal, Base, engine
-from app.routers import auth, cost_entries, customers, installers, projects, reports, suppliers, users
+from app.routers import angebote, auth, cost_entries, customers, installers, products, projects, reports, suppliers, users
 from app.services.auth import ensure_admin_user
 from app.seed import seed_db
 
@@ -16,6 +16,7 @@ _COLUMN_MIGRATIONS = [
     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_completed BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS name VARCHAR",
     "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS order_number INTEGER",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS ust_pct NUMERIC(5,2) NOT NULL DEFAULT 20.00",
 ]
 
 
@@ -27,6 +28,14 @@ async def lifespan(app: FastAPI):
         # Apply column additions that create_all won't handle on existing tables
         for stmt in _COLUMN_MIGRATIONS:
             await conn.execute(text(stmt))
+    # Ensure number sequences exist
+    async with AsyncSessionLocal() as db:
+        from app.models.number_sequence import NumberSequence
+        for seq_id, prefix in [("AN", "AN-"), ("RE", "RE-")]:
+            result = await db.execute(text(f"SELECT id FROM number_sequences WHERE id = '{seq_id}'"))
+            if result.scalar_one_or_none() is None:
+                db.add(NumberSequence(id=seq_id, prefix=prefix, current_value=0))
+        await db.commit()
     async with AsyncSessionLocal() as db:
         await ensure_admin_user(db)
         await seed_db(db)
@@ -44,7 +53,7 @@ app.add_middleware(
 )
 
 for router in [auth.router, users.router, customers.router, projects.router, suppliers.router,
-               installers.router, cost_entries.router, reports.router]:
+               installers.router, cost_entries.router, reports.router, products.router, angebote.router]:
     app.include_router(router, prefix="/api")
 
 

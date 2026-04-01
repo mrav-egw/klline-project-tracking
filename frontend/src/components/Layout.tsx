@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BarChart2, FolderOpen, LogOut, Truck, Wrench, Users, Building2 } from 'lucide-react'
+import { BarChart2, FolderOpen, LogOut, Truck, Wrench, Users, Building2, Package } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 
 const navItems = [
   { to: '/projekte', label: 'Projekte', icon: FolderOpen },
+  { to: '/produkte', label: 'Produkte', icon: Package },
   { to: '/kunden', label: 'Kunden', icon: Building2 },
   { to: '/vertriebsbericht', label: 'Vertriebsbericht', icon: BarChart2 },
   { to: '/lieferanten', label: 'Lieferanten', icon: Truck },
