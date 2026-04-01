@@ -26,6 +26,7 @@ spec:
       containers:
         - name: backend
           image: image-registry.openshift-image-registry.svc:5000/klline/backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           envFrom:
