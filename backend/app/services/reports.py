@@ -185,8 +185,10 @@ async def get_dashboard_summary(db: AsyncSession) -> DashboardSummary:
     projects_result = await db.execute(
         select(Project).options(
             selectinload(Project.purchase_orders),
-            selectinload(Project.angebote).selectinload(Angebot.positions),
-            selectinload(Project.angebote).selectinload(Angebot.rechnungen),
+            selectinload(Project.angebote).options(
+                selectinload(Angebot.positions),
+                selectinload(Angebot.rechnungen),
+            ),
         )
     )
     projects = projects_result.scalars().all()

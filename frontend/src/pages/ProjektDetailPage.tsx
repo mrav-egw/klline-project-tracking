@@ -263,7 +263,7 @@ export function ProjektDetailPage() {
                       <td className="td">{formatDate(po.order_date)}</td>
                       <td className="td text-right">{formatCurrency(po.order_amount)}</td>
                       <td className="td font-mono text-xs">{po.supplier_invoice_number ?? '–'}</td>
-                      <td className="td"><StatusBadge paid={po.klline_paid} /></td>
+                      <td className="td"><StatusBadge paid={!!po.klline_paid_date} /></td>
                       <td className="td text-xs text-gray-500 max-w-xs truncate">{po.delivery_notes ?? '–'}</td>
                       <td className="td text-xs text-gray-500 max-w-xs truncate">{po.installation_notes ?? '–'}</td>
                       <td className="td">
@@ -326,16 +326,6 @@ export function ProjektDetailPage() {
                 </div>
               )
             })}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="klline_paid"
-                checked={!!orderModal.data.klline_paid}
-                onChange={(e) => setOrderModal(prev => ({ ...prev, data: { ...prev.data, klline_paid: e.target.checked } }))}
-                className="h-4 w-4"
-              />
-              <label htmlFor="klline_paid" className="text-sm font-medium text-gray-700">Klline bezahlt</label>
-            </div>
             <div className="col-span-2">
               <label className="label">Ausgeliefert (Notizen)</label>
               <input className="input" value={orderModal.data.delivery_notes ?? ''} onChange={(e) => setOrderModal(prev => ({ ...prev, data: { ...prev.data, delivery_notes: e.target.value || undefined } }))} />

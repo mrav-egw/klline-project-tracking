@@ -28,8 +28,10 @@ _LOAD = [
     selectinload(Project.customer),
     selectinload(Project.sales_invoices),
     selectinload(Project.purchase_orders),
-    selectinload(Project.angebote).selectinload(Angebot.positions),
-    selectinload(Project.angebote).selectinload(Angebot.rechnungen),
+    selectinload(Project.angebote).options(
+        selectinload(Angebot.positions),
+        selectinload(Angebot.rechnungen),
+    ),
 ]
 
 
@@ -185,7 +187,9 @@ async def add_purchase_order(
 ):
     max_result = await db.execute(select(func.max(PurchaseOrder.order_number)))
     next_number = (max_result.scalar() or 0) + 1
-    po = PurchaseOrder(project_id=project_id, order_number=next_number, **body.model_dump())
+    data = body.model_dump()
+    data["klline_paid"] = data.get("klline_paid_date") is not None
+    po = PurchaseOrder(project_id=project_id, order_number=next_number, **data)
     db.add(po)
     await db.flush()
     await db.refresh(po)
@@ -206,7 +210,11 @@ async def update_purchase_order(
     po = result.scalar_one_or_none()
     if not po:
         raise HTTPException(status_code=404, detail="Bestellung nicht gefunden")
-    for field, value in body.model_dump(exclude_unset=True).items():
+    data = body.model_dump(exclude_unset=True)
+    # Auto-derive klline_paid from klline_paid_date
+    if "klline_paid_date" in data:
+        data["klline_paid"] = data["klline_paid_date"] is not None
+    for field, value in data.items():
         setattr(po, field, value)
     await db.flush()
     await db.refresh(po)

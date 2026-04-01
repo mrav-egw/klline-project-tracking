@@ -11,7 +11,6 @@ class RechnungCreate(BaseModel):
 
 
 class RechnungPaymentUpdate(BaseModel):
-    customer_payment_amount: Decimal | None = None
     customer_payment_date: date | None = None
 
 

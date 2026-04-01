@@ -49,5 +49,5 @@ export const getRechnungen = async (projectId: string, angebotId: string): Promi
 export const createRechnung = async (projectId: string, angebotId: string, body: { rechnung_type: string; rechnung_date?: string; abschlag_pct?: number }): Promise<Rechnung> =>
   (await client.post(`${base(projectId)}/${angebotId}/rechnungen`, body)).data
 
-export const updateRechnungPayment = async (projectId: string, angebotId: string, rechnungId: string, body: { customer_payment_amount?: number; customer_payment_date?: string }): Promise<Rechnung> =>
+export const updateRechnungPayment = async (projectId: string, angebotId: string, rechnungId: string, body: { customer_payment_date?: string }): Promise<Rechnung> =>
   (await client.put(`${base(projectId)}/${angebotId}/rechnungen/${rechnungId}`, body)).data

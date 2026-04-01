@@ -37,7 +37,7 @@ export function AngebotDetailPage() {
   const [posModal, setPosModal] = useState<{ open: boolean; data: Partial<AngebotPosition>; editId?: string }>({ open: false, data: {} })
   const [productSearch, setProductSearch] = useState('')
   const [rechnungModal, setRechnungModal] = useState<{ open: boolean; type: 'ABSCHLAG' | 'SCHLUSS'; pct: string; date: string }>({ open: false, type: 'ABSCHLAG', pct: '50', date: '' })
-  const [paymentModal, setPaymentModal] = useState<{ open: boolean; rechnungId: string; amount: string; date: string }>({ open: false, rechnungId: '', amount: '', date: '' })
+  const [paymentModal, setPaymentModal] = useState<{ open: boolean; rechnungId: string; date: string }>({ open: false, rechnungId: '', date: '' })
 
   const locked = angebot?.status === 'AKZEPTIERT'
 
@@ -72,10 +72,9 @@ export function AngebotDetailPage() {
 
   const doUpdatePayment = useMutation({
     mutationFn: () => updateRechnungPayment(projectId!, angebotId!, paymentModal.rechnungId, {
-      customer_payment_amount: paymentModal.amount ? parseFloat(paymentModal.amount) : undefined,
       customer_payment_date: paymentModal.date || undefined,
     }),
-    onSuccess: () => { invalidate(); setPaymentModal({ open: false, rechnungId: '', amount: '', date: '' }) },
+    onSuccess: () => { invalidate(); setPaymentModal({ open: false, rechnungId: '', date: '' }) },
   })
 
   if (isLoading) return <LoadingSpinner className="py-24" />
@@ -273,7 +272,6 @@ export function AngebotDetailPage() {
                       <td className="td">
                         <button onClick={() => setPaymentModal({
                           open: true, rechnungId: r.id,
-                          amount: r.customer_payment_amount?.toString() ?? '',
                           date: r.customer_payment_date ?? '',
                         })} className="text-gray-400 hover:text-blue-600">
                           <Pencil size={14} />
@@ -449,20 +447,16 @@ export function AngebotDetailPage() {
 
       {/* Payment modal */}
       {paymentModal.open && (
-        <Modal title="Zahlung eintragen" onClose={() => setPaymentModal({ open: false, rechnungId: '', amount: '', date: '' })}>
+        <Modal title="Zahlung eintragen" onClose={() => setPaymentModal({ open: false, rechnungId: '', date: '' })}>
           <div className="space-y-4">
-            <div>
-              <label className="label">Bezahlter Betrag</label>
-              <input type="number" step="0.01" className="input" value={paymentModal.amount}
-                onChange={(e) => setPaymentModal(prev => ({ ...prev, amount: e.target.value }))} />
-            </div>
             <div>
               <label className="label">Bezahlt am</label>
               <input type="date" className="input" value={paymentModal.date}
                 onChange={(e) => setPaymentModal(prev => ({ ...prev, date: e.target.value }))} />
+              <p className="text-xs text-gray-400 mt-1">Datum leer lassen = unbezahlt</p>
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <button className="btn-secondary" onClick={() => setPaymentModal({ open: false, rechnungId: '', amount: '', date: '' })}>Abbrechen</button>
+              <button className="btn-secondary" onClick={() => setPaymentModal({ open: false, rechnungId: '', date: '' })}>Abbrechen</button>
               <button className="btn-primary" disabled={doUpdatePayment.isPending}
                 onClick={() => doUpdatePayment.mutate()}>Speichern</button>
             </div>
