@@ -58,6 +58,8 @@ for router in [auth.router, users.router, customers.router, projects.router, sup
     app.include_router(router, prefix="/api")
 
 
+APP_VERSION = "ffb3d84"
+
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": APP_VERSION}

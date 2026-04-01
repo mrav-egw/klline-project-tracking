@@ -39,6 +39,7 @@ export function Layout() {
           ))}
         </nav>
         <div className="border-t border-gray-700 px-3 py-4">
+          <div className="mb-1 px-3 text-[10px] text-gray-600">Frontend: ffb3d84</div>
           <div className="mb-2 px-3 text-xs text-gray-400">{user?.full_name} ({user?.username})</div>
           <button
             onClick={logout}
