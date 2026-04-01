@@ -300,8 +300,42 @@ export function VertriebsberichtPage() {
                   {formatCurrency(data.profit)}
                 </div>
                 <div className="h-3" />
-                <div className="text-blue-600 font-medium text-xs">{formatCurrency(data.noch_zu_erwartende_einnahmen)}</div>
-                <div className="text-red-600 font-medium text-xs">{formatCurrency(data.noch_zu_erwartende_ausgaben)}</div>
+                <div className="relative group inline-block">
+                  <span className="text-blue-600 font-medium text-xs cursor-help border-b border-dashed border-blue-300">
+                    {formatCurrency(data.noch_zu_erwartende_einnahmen)}
+                  </span>
+                  {data.noch_zu_erwartende_einnahmen_items.length > 0 && (
+                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72 rounded-lg border border-gray-200 bg-white shadow-lg p-3 text-xs text-gray-700">
+                      <p className="font-semibold mb-1.5 text-gray-900">Offene Rechnungen</p>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {data.noch_zu_erwartende_einnahmen_items.map((item, i) => (
+                          <div key={i} className="flex justify-between gap-2">
+                            <span className="truncate"><span className="font-mono text-gray-400">{item.rechnung_number}</span> {item.project_name} ({item.customer_name})</span>
+                            <span className="whitespace-nowrap font-medium">{formatCurrency(item.total_netto)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="relative group inline-block">
+                  <span className="text-red-600 font-medium text-xs cursor-help border-b border-dashed border-red-300">
+                    {formatCurrency(data.noch_zu_erwartende_ausgaben)}
+                  </span>
+                  {data.noch_zu_erwartende_ausgaben_items.length > 0 && (
+                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-72 rounded-lg border border-gray-200 bg-white shadow-lg p-3 text-xs text-gray-700">
+                      <p className="font-semibold mb-1.5 text-gray-900">Offene Bestellungen</p>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {data.noch_zu_erwartende_ausgaben_items.map((item, i) => (
+                          <div key={i} className="flex justify-between gap-2">
+                            <span className="truncate">{item.order_number != null ? `B-${String(item.order_number).padStart(3, '0')} ` : ''}{item.name ?? item.project_name} ({item.supplier_name})</span>
+                            <span className="whitespace-nowrap font-medium">{formatCurrency(item.order_amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               {/* From actual invoices */}
               <div className="space-y-2">

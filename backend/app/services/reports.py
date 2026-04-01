@@ -10,6 +10,8 @@ from app.models.project import Project, PurchaseOrder
 from app.models.rechnung import Rechnung
 from app.schemas.report import (
     DashboardSummary,
+    OutstandingExpenseItem,
+    OutstandingRevenueItem,
     ProjectPurchaseRow,
     ProjectRevenueRow,
     VertriebsberichtReport,
@@ -110,21 +112,52 @@ async def get_vertriebsbericht(
 
     # ── Global outstanding (no date filter) ───────────────────────────────────
     # Noch zu erwartende Einnahmen: Rechnungen without customer payment
-    unpaid_rechnungen = await db.execute(
-        select(Rechnung).where(Rechnung.customer_payment_date.is_(None))
+    unpaid_rechnungen_result = await db.execute(
+        select(Rechnung)
+        .join(Rechnung.angebot)
+        .join(Angebot.project)
+        .options(
+            selectinload(Rechnung.angebot).selectinload(Angebot.project).selectinload(Project.customer),
+        )
+        .where(Rechnung.customer_payment_date.is_(None))
     )
+    unpaid_rechnungen_list = unpaid_rechnungen_result.scalars().all()
     noch_zu_erwartende_einnahmen = sum(
-        (r.total_netto for r in unpaid_rechnungen.scalars().all()),
-        Decimal("0"),
+        (r.total_netto for r in unpaid_rechnungen_list), Decimal("0"),
     )
+    einnahmen_items = [
+        OutstandingRevenueItem(
+            rechnung_number=r.rechnung_number,
+            project_name=r.angebot.project.name,
+            customer_name=r.angebot.project.customer.name if r.angebot.project.customer else "–",
+            total_netto=r.total_netto,
+        )
+        for r in unpaid_rechnungen_list
+    ]
 
-    unpaid_result = await db.execute(
-        select(PurchaseOrder).where(PurchaseOrder.klline_paid == False)  # noqa: E712
+    unpaid_po_result = await db.execute(
+        select(PurchaseOrder)
+        .join(PurchaseOrder.project)
+        .options(
+            selectinload(PurchaseOrder.project),
+            selectinload(PurchaseOrder.supplier),
+        )
+        .where(PurchaseOrder.klline_paid == False)  # noqa: E712
     )
+    unpaid_po_list = unpaid_po_result.scalars().all()
     noch_zu_erwartende_ausgaben = sum(
-        (po.order_amount for po in unpaid_result.scalars().all()),
-        Decimal("0"),
+        (po.order_amount for po in unpaid_po_list), Decimal("0"),
     )
+    ausgaben_items = [
+        OutstandingExpenseItem(
+            order_number=po.order_number,
+            name=po.name,
+            project_name=po.project.name,
+            supplier_name=po.supplier_name_free or (po.supplier.name if po.supplier else "–"),
+            order_amount=po.order_amount,
+        )
+        for po in unpaid_po_list
+    ]
 
     return VertriebsberichtReport(
         year=year,
@@ -142,7 +175,9 @@ async def get_vertriebsbericht(
         total_supplier_invoiced=total_supplier_invoiced,
         profit=profit,
         noch_zu_erwartende_einnahmen=noch_zu_erwartende_einnahmen,
+        noch_zu_erwartende_einnahmen_items=einnahmen_items,
         noch_zu_erwartende_ausgaben=noch_zu_erwartende_ausgaben,
+        noch_zu_erwartende_ausgaben_items=ausgaben_items,
     )
 
 

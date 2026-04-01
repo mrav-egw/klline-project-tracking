@@ -148,6 +148,21 @@ export interface ProjectPurchaseRow {
   klline_paid: boolean
 }
 
+export interface OutstandingRevenueItem {
+  rechnung_number: string
+  project_name: string
+  customer_name: string
+  total_netto: number
+}
+
+export interface OutstandingExpenseItem {
+  order_number?: number
+  name?: string
+  project_name: string
+  supplier_name: string
+  order_amount: number
+}
+
 export interface VertriebsberichtReport {
   year: number
   month?: number
@@ -164,7 +179,9 @@ export interface VertriebsberichtReport {
   total_supplier_invoiced: number
   profit: number
   noch_zu_erwartende_einnahmen: number
+  noch_zu_erwartende_einnahmen_items: OutstandingRevenueItem[]
   noch_zu_erwartende_ausgaben: number
+  noch_zu_erwartende_ausgaben_items: OutstandingExpenseItem[]
 }
 
 // ── Angebote & Rechnungen ────────────────────────────────────────────────────
