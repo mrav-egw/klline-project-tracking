@@ -103,4 +103,6 @@ class AngebotListRead(BaseModel):
     status: str
     total_netto: Decimal
     position_count: int
+    rechnungen_count: int
+    unpaid_rechnungen_count: int
     created_at: datetime

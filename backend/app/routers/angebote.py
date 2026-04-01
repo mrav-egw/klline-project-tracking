@@ -82,6 +82,8 @@ async def list_angebote(
             id=a.id, project_id=a.project_id, angebot_number=a.angebot_number,
             angebot_date=a.angebot_date, status=a.status.value,
             total_netto=a.total_netto, position_count=len(a.positions),
+            rechnungen_count=len(a.rechnungen),
+            unpaid_rechnungen_count=sum(1 for r in a.rechnungen if r.customer_payment_date is None),
             created_at=a.created_at,
         )
         for a in angebote

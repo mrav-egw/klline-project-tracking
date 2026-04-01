@@ -239,6 +239,8 @@ export interface AngebotListItem {
   status: 'ENTWURF' | 'AKZEPTIERT'
   total_netto: number
   position_count: number
+  rechnungen_count: number
+  unpaid_rechnungen_count: number
   created_at: string
 }
 

@@ -208,11 +208,23 @@ export function ProjektDetailPage() {
                       <td className="td font-mono text-xs font-bold text-blue-600">{a.angebot_number}</td>
                       <td className="td">{formatDate(a.angebot_date)}</td>
                       <td className="td">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                          a.status === 'AKZEPTIERT' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {a.status === 'AKZEPTIERT' ? 'Akzeptiert' : 'Entwurf'}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            a.status === 'AKZEPTIERT' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {a.status === 'AKZEPTIERT' ? 'Akzeptiert' : 'Entwurf'}
+                          </span>
+                          {a.unpaid_rechnungen_count > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                              {a.unpaid_rechnungen_count} RE offen
+                            </span>
+                          )}
+                          {a.rechnungen_count > 0 && a.unpaid_rechnungen_count === 0 && (
+                            <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                              alles bezahlt
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="td text-right">{a.position_count}</td>
                       <td className="td text-right font-medium">{formatCurrency(a.total_netto)}</td>
