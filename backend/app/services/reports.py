@@ -11,7 +11,8 @@ from app.models.rechnung import Rechnung
 from app.schemas.report import (
     DashboardSummary,
     OutstandingExpenseItem,
-    OutstandingRevenueItem,
+    OutstandingRechnungItem,
+    OutstandingRevenueProject,
     ProjectPurchaseRow,
     ProjectRevenueRow,
     VertriebsberichtReport,
@@ -125,14 +126,29 @@ async def get_vertriebsbericht(
     noch_zu_erwartende_einnahmen = sum(
         (r.total_netto for r in unpaid_rechnungen_list), Decimal("0"),
     )
+    # Group by project
+    project_rechnungen: dict[str, list] = {}
+    for r in unpaid_rechnungen_list:
+        pid = r.project_id
+        if pid not in project_rechnungen:
+            project_rechnungen[pid] = []
+        project_rechnungen[pid].append(r)
     einnahmen_items = [
-        OutstandingRevenueItem(
-            rechnung_number=r.rechnung_number,
-            project_name=r.angebot.project.name,
-            customer_name=r.angebot.project.customer.name if r.angebot.project.customer else "–",
-            total_netto=r.total_netto,
+        OutstandingRevenueProject(
+            project_id=pid,
+            project_name=rlist[0].angebot.project.name,
+            customer_name=rlist[0].angebot.project.customer.name if rlist[0].angebot.project.customer else "–",
+            total_netto=sum((r.total_netto for r in rlist), Decimal("0")),
+            rechnungen=[
+                OutstandingRechnungItem(
+                    rechnung_number=r.rechnung_number,
+                    rechnung_type=r.rechnung_type.value,
+                    total_netto=r.total_netto,
+                )
+                for r in rlist
+            ],
         )
-        for r in unpaid_rechnungen_list
+        for pid, rlist in project_rechnungen.items()
     ]
 
     unpaid_po_result = await db.execute(

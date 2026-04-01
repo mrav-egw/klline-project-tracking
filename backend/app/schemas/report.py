@@ -29,11 +29,17 @@ class ProjectPurchaseRow(BaseModel):
     klline_paid: bool
 
 
-class OutstandingRevenueItem(BaseModel):
+class OutstandingRechnungItem(BaseModel):
     rechnung_number: str
+    rechnung_type: str
+    total_netto: Decimal
+
+class OutstandingRevenueProject(BaseModel):
+    project_id: str
     project_name: str
     customer_name: str
-    total_netto: Decimal
+    total_netto: Decimal  # sum of unpaid rechnungen for this project
+    rechnungen: list[OutstandingRechnungItem]
 
 class OutstandingExpenseItem(BaseModel):
     order_number: int | None
@@ -63,7 +69,7 @@ class VertriebsberichtReport(BaseModel):
     profit: Decimal
     # Global outstanding (not period-filtered)
     noch_zu_erwartende_einnahmen: Decimal
-    noch_zu_erwartende_einnahmen_items: list[OutstandingRevenueItem]
+    noch_zu_erwartende_einnahmen_items: list[OutstandingRevenueProject]
     noch_zu_erwartende_ausgaben: Decimal
     noch_zu_erwartende_ausgaben_items: list[OutstandingExpenseItem]
 

@@ -25,7 +25,7 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className={`card w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`}>
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
