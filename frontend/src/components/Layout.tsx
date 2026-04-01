@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BarChart2, FolderOpen, LogOut, Truck, Wrench, Users, Building2, Package } from 'lucide-react'
+import { BarChart2, FolderOpen, LogOut, Truck, Wrench, Users, Building2, Package, Settings } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/lieferanten', label: 'Lieferanten', icon: Truck },
   { to: '/monteure', label: 'Monteure', icon: Wrench },
   { to: '/benutzer', label: 'Benutzer', icon: Users },
+  { to: '/einstellungen', label: 'Einstellungen', icon: Settings },
 ]
 
 export function Layout() {

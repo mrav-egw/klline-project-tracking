@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -8,8 +9,11 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.deps import get_current_user
 from app.models.angebot import Angebot, AngebotPosition, AngebotPositionGroup, AngebotStatus
+from app.models.company_settings import CompanySettings
 from app.models.number_sequence import NumberSequence
+from app.models.project import Project
 from app.models.rechnung import Rechnung, RechnungType
+from app.services.pdf_generator import generate_angebot_pdf, generate_rechnung_pdf
 from app.schemas.angebot import (
     AngebotCreate, AngebotListRead, AngebotRead, AngebotUpdate,
     PositionCreate, PositionGroupCreate, PositionGroupRead, PositionGroupUpdate,
@@ -394,3 +398,57 @@ async def update_rechnung_payment(
     await db.flush()
     await db.refresh(r)
     return RechnungRead.model_validate(r)
+
+
+# ── PDF Downloads ────────────────────────────────────────────────────────────
+
+async def _load_for_pdf(db: AsyncSession, project_id: str, angebot_id: str):
+    """Load angebot with all relations + customer + company settings for PDF."""
+    result = await db.execute(
+        select(Angebot).options(
+            *_LOAD,
+            selectinload(Angebot.project).selectinload(Project.customer),
+        ).where(Angebot.id == angebot_id, Angebot.project_id == project_id)
+    )
+    a = result.scalar_one_or_none()
+    if not a:
+        raise HTTPException(status_code=404, detail="Angebot nicht gefunden")
+    customer = a.project.customer
+    cs_result = await db.execute(select(CompanySettings).where(CompanySettings.id == "default"))
+    cs = cs_result.scalar_one_or_none()
+    if cs is None:
+        cs = CompanySettings(id="default")
+    return a, customer, cs
+
+
+@router.get("/{angebot_id}/pdf")
+async def download_angebot_pdf(
+    project_id: str, angebot_id: str,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    a, customer, cs = await _load_for_pdf(db, project_id, angebot_id)
+    pdf_bytes = generate_angebot_pdf(a, customer, cs)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="Angebot_{a.angebot_number}.pdf"'},
+    )
+
+
+@router.get("/{angebot_id}/rechnungen/{rechnung_id}/pdf")
+async def download_rechnung_pdf(
+    project_id: str, angebot_id: str, rechnung_id: str,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    a, customer, cs = await _load_for_pdf(db, project_id, angebot_id)
+    rechnung = next((r for r in a.rechnungen if r.id == rechnung_id), None)
+    if not rechnung:
+        raise HTTPException(status_code=404, detail="Rechnung nicht gefunden")
+    pdf_bytes = generate_rechnung_pdf(rechnung, a, customer, cs)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="Rechnung_{rechnung.rechnung_number}.pdf"'},
+    )

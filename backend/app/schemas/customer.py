@@ -9,6 +9,11 @@ class CustomerBase(BaseModel):
     contact_person: str | None = None
     email: str | None = None
     phone: str | None = None
+    address: str | None = None
+    postal_code: str | None = None
+    city: str | None = None
+    country: str | None = "Österreich"
+    customer_ust_id: str | None = None
     notes: str | None = None
     ust_pct: Decimal = Decimal("20.00")
 
@@ -22,6 +27,11 @@ class CustomerUpdate(BaseModel):
     contact_person: str | None = None
     email: str | None = None
     phone: str | None = None
+    address: str | None = None
+    postal_code: str | None = None
+    city: str | None = None
+    country: str | None = None
+    customer_ust_id: str | None = None
     notes: str | None = None
     ust_pct: Decimal | None = None
 

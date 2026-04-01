@@ -8,6 +8,7 @@ from app.models.product import Product
 from app.models.number_sequence import NumberSequence
 from app.models.angebot import Angebot, AngebotPositionGroup, AngebotPosition, AngebotStatus
 from app.models.rechnung import Rechnung, RechnungType
+from app.models.company_settings import CompanySettings
 
 __all__ = [
     "User", "Customer", "Project", "SalesInvoice", "PurchaseOrder",

@@ -1,5 +1,5 @@
 import client from './client'
-import type { Angebot, AngebotListItem, AngebotPositionGroup, AngebotPosition, Rechnung } from '../types'
+import type { Angebot, AngebotListItem, AngebotPosition, Rechnung } from '../types'
 
 const base = (projectId: string) => `/projects/${projectId}/angebote`
 
@@ -51,3 +51,23 @@ export const createRechnung = async (projectId: string, angebotId: string, body:
 
 export const updateRechnungPayment = async (projectId: string, angebotId: string, rechnungId: string, body: { customer_payment_date?: string }): Promise<Rechnung> =>
   (await client.put(`${base(projectId)}/${angebotId}/rechnungen/${rechnungId}`, body)).data
+
+// PDF downloads
+const downloadBlob = (data: Blob, filename: string) => {
+  const url = URL.createObjectURL(data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export const downloadAngebotPdf = async (projectId: string, angebotId: string, angebotNumber: string) => {
+  const resp = await client.get(`${base(projectId)}/${angebotId}/pdf`, { responseType: 'blob' })
+  downloadBlob(resp.data, `Angebot_${angebotNumber}.pdf`)
+}
+
+export const downloadRechnungPdf = async (projectId: string, angebotId: string, rechnungId: string, rechnungNumber: string) => {
+  const resp = await client.get(`${base(projectId)}/${angebotId}/rechnungen/${rechnungId}/pdf`, { responseType: 'blob' })
+  downloadBlob(resp.data, `Rechnung_${rechnungNumber}.pdf`)
+}

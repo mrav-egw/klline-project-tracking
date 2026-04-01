@@ -11,10 +11,36 @@ export interface Customer {
   contact_person?: string
   email?: string
   phone?: string
+  address?: string
+  postal_code?: string
+  city?: string
+  country?: string
+  customer_ust_id?: string
   notes?: string
   ust_pct: number
   created_at: string
   updated_at: string
+}
+
+export interface CompanySettings {
+  company_name?: string
+  address?: string
+  postal_code?: string
+  city?: string
+  country?: string
+  phone?: string
+  email?: string
+  web?: string
+  fn_nr?: string
+  ust_id?: string
+  amtsgericht?: string
+  geschaeftsfuehrung?: string
+  bank_name?: string
+  iban?: string
+  bic?: string
+  logo_base64?: string
+  default_payment_terms?: string
+  default_greeting?: string
 }
 
 export interface Product {

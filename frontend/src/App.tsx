@@ -12,6 +12,7 @@ import { MonturePage } from './pages/MonturePage'
 import { BenutzerPage } from './pages/BenutzerPage'
 import { ProduktePage } from './pages/ProduktePage'
 import { AngebotDetailPage } from './pages/AngebotDetailPage'
+import { EinstellungenPage } from './pages/EinstellungenPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="lieferanten" element={<LieferantenPage />} />
             <Route path="monteure" element={<MonturePage />} />
             <Route path="benutzer" element={<BenutzerPage />} />
+            <Route path="einstellungen" element={<EinstellungenPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

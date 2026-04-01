@@ -7,7 +7,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.database import AsyncSessionLocal, Base, engine
-from app.routers import angebote, auth, cost_entries, customers, installers, products, projects, reports, suppliers, users
+from app.routers import angebote, auth, company_settings, cost_entries, customers, installers, products, projects, reports, suppliers, users
 from app.services.auth import ensure_admin_user
 from app.seed import seed_db
 
@@ -18,6 +18,11 @@ _COLUMN_MIGRATIONS = [
     "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS order_number INTEGER",
     "ALTER TABLE customers ADD COLUMN IF NOT EXISTS ust_pct NUMERIC(5,2) NOT NULL DEFAULT 20.00",
     "ALTER TABLE products ADD COLUMN IF NOT EXISTS supplier_id VARCHAR REFERENCES suppliers(id) ON DELETE SET NULL",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS address VARCHAR",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS postal_code VARCHAR",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS city VARCHAR",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS country VARCHAR DEFAULT 'Österreich'",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_ust_id VARCHAR",
 ]
 
 
@@ -54,7 +59,8 @@ app.add_middleware(
 )
 
 for router in [auth.router, users.router, customers.router, projects.router, suppliers.router,
-               installers.router, cost_entries.router, reports.router, products.router, angebote.router]:
+               installers.router, cost_entries.router, reports.router, products.router,
+               angebote.router, company_settings.router]:
     app.include_router(router, prefix="/api")
 
 

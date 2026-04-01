@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Trash2, Pencil, CheckCircle, FileText, Search } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Pencil, CheckCircle, FileText, Search, Download } from 'lucide-react'
 import {
   getAngebot, acceptAngebot, deleteAngebot,
   addGroup, updateGroup, deleteGroup,
   addPosition, updatePosition, deletePosition,
   createRechnung, updateRechnungPayment,
+  downloadAngebotPdf, downloadRechnungPdf,
 } from '../api/angebote'
 import { getProducts } from '../api/products'
 import { formatCurrency, formatDate } from '../utils/format'
@@ -145,6 +146,10 @@ export function AngebotDetailPage() {
           })()}
         </div>
         <div className="flex gap-2">
+          <button onClick={() => downloadAngebotPdf(projectId!, angebotId!, angebot.angebot_number)}
+            className="btn-secondary">
+            <Download size={16} /> PDF
+          </button>
           {!locked && (
             <>
               <button onClick={() => { if (confirm('Angebot akzeptieren? Danach können keine Änderungen mehr vorgenommen werden.')) doAccept.mutate() }}
@@ -288,12 +293,18 @@ export function AngebotDetailPage() {
                         }
                       </td>
                       <td className="td">
-                        <button onClick={() => setPaymentModal({
-                          open: true, rechnungId: r.id,
-                          date: r.customer_payment_date ?? '',
-                        })} className="text-gray-400 hover:text-blue-600">
-                          <Pencil size={14} />
-                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => downloadRechnungPdf(projectId!, angebotId!, r.id, r.rechnung_number)}
+                            className="text-gray-400 hover:text-blue-600" title="PDF herunterladen">
+                            <Download size={14} />
+                          </button>
+                          <button onClick={() => setPaymentModal({
+                            open: true, rechnungId: r.id,
+                            date: r.customer_payment_date ?? '',
+                          })} className="text-gray-400 hover:text-blue-600" title="Zahlung eintragen">
+                            <Pencil size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

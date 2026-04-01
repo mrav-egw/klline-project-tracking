@@ -154,6 +154,11 @@ export function KundenPage() {
               ['contact_person', 'Kontaktperson'],
               ['email', 'E-Mail'],
               ['phone', 'Telefon'],
+              ['address', 'Adresse'],
+              ['postal_code', 'PLZ'],
+              ['city', 'Ort'],
+              ['country', 'Land'],
+              ['customer_ust_id', 'USt-ID (Kunde)'],
             ] as [keyof Customer, string][]).map(([field, label]) => (
               <div key={field as string}>
                 <label className="label">{label}</label>
