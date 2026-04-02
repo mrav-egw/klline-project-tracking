@@ -13,3 +13,4 @@ class UserRead(BaseModel):
     username: str
     full_name: str
     is_active: bool
+    role: str = "user"
