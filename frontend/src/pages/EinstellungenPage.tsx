@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Save, Upload, X } from 'lucide-react'
 import { getCompanySettings, updateCompanySettings } from '../api/companySettings'
@@ -10,12 +10,19 @@ export function EinstellungenPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<Partial<CompanySettings>>({})
   const [dirty, setDirty] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
-  const { isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['company-settings'],
     queryFn: getCompanySettings,
-    onSuccess: (data: CompanySettings) => { setForm(data); setDirty(false) },
-  } as any)
+  })
+
+  useEffect(() => {
+    if (data && !loaded) {
+      setForm(data)
+      setLoaded(true)
+    }
+  }, [data, loaded])
 
   const save = useMutation({
     mutationFn: () => updateCompanySettings(form),

@@ -61,17 +61,21 @@ TEMPLATE = Template(r"""<!DOCTYPE html>
     padding-top: 6pt;
     font-size: 7.5pt;
     color: #666;
-    display: flex;
-    gap: 10pt;
   }
-  .footer-col { flex: 1; }
+  .footer-table { width: 100%; border-collapse: collapse; }
+  .footer-table td { vertical-align: top; padding: 0 8pt; font-size: 7.5pt; color: #666; }
+  .footer-table td:first-child { padding-left: 0; }
+  .footer-table td:last-child { padding-right: 0; text-align: right; }
 
-  .header { margin-bottom: 15mm; }
-  .logo { float: right; max-height: 50pt; max-width: 180pt; }
-  .sender-line { font-size: 7pt; color: #888; border-bottom: 0.5pt solid #888; padding-bottom: 2pt; margin-bottom: 8pt; margin-top: 40pt; clear: both; display: inline-block; }
-  .address-block { margin-bottom: 10pt; font-size: 10pt; line-height: 1.5; }
+  .header { margin-bottom: 8mm; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10pt; }
+  .header-top .address-side { flex: 1; }
+  .header-top .meta-side { flex: 0 0 auto; text-align: right; }
+  .logo { max-height: 50pt; max-width: 180pt; margin-bottom: 8pt; }
+  .sender-line { font-size: 7pt; color: #888; border-bottom: 0.5pt solid #888; padding-bottom: 2pt; margin-bottom: 8pt; display: inline-block; }
+  .address-block { margin-bottom: 5pt; font-size: 10pt; line-height: 1.5; }
 
-  .meta-table { float: right; margin-top: -80pt; font-size: 9pt; }
+  .meta-table { font-size: 9pt; }
   .meta-table td { padding: 1pt 0; }
   .meta-table td:first-child { color: #666; padding-right: 15pt; }
   .meta-table td:last-child { text-align: right; font-weight: 600; }
@@ -119,50 +123,57 @@ TEMPLATE = Template(r"""<!DOCTYPE html>
 
 <!-- Footer on every page -->
 <div class="page-footer">
-  <div class="footer-col">
-    {{ cs.company_name or '' }}<br>
-    {% if cs.address %}{{ cs.address }}<br>{% endif %}
-    {% if cs.postal_code or cs.city %}{{ cs.postal_code or '' }} {{ cs.city or '' }}<br>{% endif %}
-    {{ cs.country or '' }}
-  </div>
-  <div class="footer-col">
-    {% if cs.phone %}Tel. {{ cs.phone }}<br>{% endif %}
-    {% if cs.email %}E-Mail {{ cs.email }}<br>{% endif %}
-    {% if cs.web %}Web {{ cs.web }}<br>{% endif %}
-    {% if cs.fn_nr %}FN-Nr. {{ cs.fn_nr }}<br>{% endif %}
-    {% if cs.ust_id %}USt.-ID {{ cs.ust_id }}<br>{% endif %}
-    {% if cs.amtsgericht %}{{ cs.amtsgericht }}<br>{% endif %}
-    {% if cs.geschaeftsfuehrung %}Geschäftsführung {{ cs.geschaeftsfuehrung }}{% endif %}
-  </div>
-  <div class="footer-col">
-    {% if cs.bank_name %}{{ cs.bank_name }}<br>{% endif %}
-    {% if cs.iban %}IBAN {{ cs.iban }}<br>{% endif %}
-    {% if cs.bic %}BIC {{ cs.bic }}{% endif %}
-  </div>
+  <table class="footer-table"><tr>
+    <td>
+      {{ cs.company_name or '' }}<br>
+      {% if cs.address %}{{ cs.address }}<br>{% endif %}
+      {% if cs.postal_code or cs.city %}{{ cs.postal_code or '' }} {{ cs.city or '' }}<br>{% endif %}
+      {{ cs.country or '' }}
+    </td>
+    <td>
+      {% if cs.phone %}Tel. {{ cs.phone }}<br>{% endif %}
+      {% if cs.email %}E-Mail {{ cs.email }}<br>{% endif %}
+      {% if cs.web %}Web {{ cs.web }}<br>{% endif %}
+    </td>
+    <td>
+      {% if cs.fn_nr %}FN-Nr. {{ cs.fn_nr }}<br>{% endif %}
+      {% if cs.ust_id %}USt.-ID {{ cs.ust_id }}<br>{% endif %}
+      {% if cs.amtsgericht %}{{ cs.amtsgericht }}<br>{% endif %}
+      {% if cs.geschaeftsfuehrung %}Geschäftsführung {{ cs.geschaeftsfuehrung }}{% endif %}
+    </td>
+    <td>
+      {% if cs.bank_name %}{{ cs.bank_name }}<br>{% endif %}
+      {% if cs.iban %}IBAN {{ cs.iban }}<br>{% endif %}
+      {% if cs.bic %}BIC {{ cs.bic }}{% endif %}
+    </td>
+  </tr></table>
 </div>
 
 <!-- Header -->
 <div class="header">
-  {% if cs.logo_base64 %}
-  <img class="logo" src="data:image/png;base64,{{ cs.logo_base64 }}" alt="Logo">
-  {% endif %}
-
-  <div class="sender-line">{{ cs.company_name or '' }} · {{ cs.address or '' }} · {{ cs.postal_code or '' }} {{ cs.city or '' }}</div>
-
-  <div class="address-block">
-    <strong>{{ customer.name }}</strong><br>
-    {% if customer.address %}{{ customer.address }}<br>{% endif %}
-    {% if customer.postal_code or customer.city %}{{ customer.postal_code or '' }} {{ customer.city or '' }}<br>{% endif %}
-    {% if customer.country and customer.country != 'Österreich' %}{{ customer.country }}<br>{% endif %}
+  <div class="header-top">
+    <div class="address-side">
+      <div class="sender-line">{{ cs.company_name or '' }} · {{ cs.address or '' }} · {{ cs.postal_code or '' }} {{ cs.city or '' }}</div>
+      <div class="address-block">
+        <strong>{{ customer.name }}</strong><br>
+        {% if customer.address %}{{ customer.address }}<br>{% endif %}
+        {% if customer.postal_code or customer.city %}{{ customer.postal_code or '' }} {{ customer.city or '' }}<br>{% endif %}
+        {% if customer.country and customer.country != 'Österreich' %}{{ customer.country }}<br>{% endif %}
+      </div>
+    </div>
+    <div class="meta-side">
+      {% if cs.logo_base64 %}
+      <img class="logo" src="data:image/png;base64,{{ cs.logo_base64 }}" alt="Logo"><br>
+      {% endif %}
+      <table class="meta-table">
+        <tr><td>{{ doc_number_label }}</td><td>{{ doc_number }}</td></tr>
+        <tr><td>{{ doc_date_label }}</td><td>{{ doc_date }}</td></tr>
+        {% if reference %}<tr><td>Referenz</td><td>{{ reference }}</td></tr>{% endif %}
+        {% if ansprechpartner %}<tr><td>Ihr Ansprechpartner</td><td>{{ ansprechpartner }}</td></tr>{% endif %}
+        {% if customer.customer_ust_id %}<tr><td>Ihre USt-Id.</td><td>{{ customer.customer_ust_id }}</td></tr>{% endif %}
+      </table>
+    </div>
   </div>
-
-  <table class="meta-table">
-    <tr><td>{{ doc_number_label }}</td><td>{{ doc_number }}</td></tr>
-    <tr><td>{{ doc_date_label }}</td><td>{{ doc_date }}</td></tr>
-    {% if reference %}<tr><td>Referenz</td><td>{{ reference }}</td></tr>{% endif %}
-    {% if customer.contact_person %}<tr><td>Ihr Ansprechpartner</td><td>{{ customer.contact_person }}</td></tr>{% endif %}
-    {% if customer.customer_ust_id %}<tr><td>Ihre USt-Id.</td><td>{{ customer.customer_ust_id }}</td></tr>{% endif %}
-  </table>
 </div>
 
 <!-- Title -->
@@ -338,6 +349,7 @@ def generate_angebot_pdf(
         "doc_date": _format_date(angebot.angebot_date),
         "reference": "",
         "doc_title": f"Angebot Nr. {angebot.angebot_number}",
+        "ansprechpartner": cs.geschaeftsfuehrung or "",
         "greeting": cs.default_greeting or "Sehr geehrte Damen und Herren,",
         "intro_text": "vielen Dank für Ihr Interesse! Hiermit unterbreiten wir Ihnen folgendes Angebot:",
         "position_rows": _build_position_rows(angebot),
@@ -427,6 +439,7 @@ def generate_rechnung_pdf(
         "doc_date": _format_date(rechnung.rechnung_date),
         "reference": f"Angebot {angebot.angebot_number}",
         "doc_title": title,
+        "ansprechpartner": cs.geschaeftsfuehrung or "",
         "greeting": cs.default_greeting or "Sehr geehrte Damen und Herren,",
         "intro_text": "vielen Dank für Ihren Auftrag und das damit verbundene Vertrauen!\nHiermit stelle ich Ihnen die folgenden Leistungen in Rechnung:",
         "position_rows": _build_position_rows(angebot),
