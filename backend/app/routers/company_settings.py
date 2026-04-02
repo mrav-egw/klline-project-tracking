@@ -14,7 +14,13 @@ async def _get_or_create(db: AsyncSession) -> CompanySettings:
     result = await db.execute(select(CompanySettings).where(CompanySettings.id == "default"))
     cs = result.scalar_one_or_none()
     if cs is None:
-        cs = CompanySettings(id="default")
+        cs = CompanySettings(
+            id="default",
+            company_name="Klline - Freude am Arbeitsplatz",
+            country="Österreich",
+            default_greeting="Sehr geehrte Damen und Herren,\nvielen Dank für Ihren Auftrag und das damit verbundene Vertrauen!\nHiermit stelle ich Ihnen die folgenden Leistungen in Rechnung:",
+            default_payment_terms="Zahlungsbedingungen: Zahlung innerhalb von 8 Tagen ab Rechnungseingang ohne Abzüge.",
+        )
         db.add(cs)
         await db.flush()
         await db.refresh(cs)

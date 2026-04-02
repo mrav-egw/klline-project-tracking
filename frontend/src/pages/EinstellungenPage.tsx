@@ -136,7 +136,8 @@ export function EinstellungenPage() {
         <h2 className="text-sm font-semibold text-gray-700">Standardtexte</h2>
         <div>
           <label className="label">Begrüßung</label>
-          <input className="input" placeholder="Sehr geehrte Damen und Herren,"
+          <textarea className="input min-h-[80px]" rows={3}
+            placeholder="Sehr geehrte Damen und Herren,&#10;vielen Dank für Ihren Auftrag und das damit verbundene Vertrauen!&#10;Hiermit stelle ich Ihnen die folgenden Leistungen in Rechnung:"
             value={form.default_greeting ?? ''} onChange={(e) => set('default_greeting', e.target.value || undefined)} />
         </div>
         <div>

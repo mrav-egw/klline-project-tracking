@@ -81,7 +81,7 @@ TEMPLATE = Template(r"""<!DOCTYPE html>
   .meta-table td:last-child { text-align: right; font-weight: 600; }
 
   .title { font-size: 14pt; font-weight: 700; margin: 25pt 0 12pt 0; clear: both; border-bottom: 1.5pt solid #222; padding-bottom: 6pt; }
-  .greeting { margin-bottom: 10pt; font-size: 9.5pt; }
+  .greeting { margin-bottom: 10pt; font-size: 9.5pt; white-space: pre-line; }
 
   table.positions { width: 100%; border-collapse: collapse; margin-bottom: 15pt; }
   table.positions th { background: #f5f5f5; border-bottom: 1.5pt solid #ccc; padding: 5pt 6pt; text-align: left; font-size: 8.5pt; font-weight: 700; }
@@ -180,10 +180,7 @@ TEMPLATE = Template(r"""<!DOCTYPE html>
 <div class="title">{{ doc_title }}</div>
 
 <!-- Greeting -->
-<div class="greeting">
-  {{ greeting }}<br>
-  {{ intro_text }}
-</div>
+<div class="greeting">{{ greeting }}</div>
 
 <!-- Positions table -->
 <table class="positions">
@@ -350,8 +347,7 @@ def generate_angebot_pdf(
         "reference": "",
         "doc_title": f"Angebot Nr. {angebot.angebot_number}",
         "ansprechpartner": cs.geschaeftsfuehrung or "",
-        "greeting": cs.default_greeting or "Sehr geehrte Damen und Herren,",
-        "intro_text": "vielen Dank für Ihr Interesse! Hiermit unterbreiten wir Ihnen folgendes Angebot:",
+        "greeting": cs.default_greeting or "Sehr geehrte Damen und Herren,\nvielen Dank für Ihr Interesse! Hiermit unterbreiten wir Ihnen folgendes Angebot:",
         "position_rows": _build_position_rows(angebot),
         "total_netto_str": _format_eur(total_netto),
         "ust_pct_str": str(ust_pct).replace(".", ","),
@@ -440,8 +436,7 @@ def generate_rechnung_pdf(
         "reference": f"Angebot {angebot.angebot_number}",
         "doc_title": title,
         "ansprechpartner": cs.geschaeftsfuehrung or "",
-        "greeting": cs.default_greeting or "Sehr geehrte Damen und Herren,",
-        "intro_text": "vielen Dank für Ihren Auftrag und das damit verbundene Vertrauen!\nHiermit stelle ich Ihnen die folgenden Leistungen in Rechnung:",
+        "greeting": cs.default_greeting or "Sehr geehrte Damen und Herren,\nvielen Dank für Ihren Auftrag und das damit verbundene Vertrauen!\nHiermit stelle ich Ihnen die folgenden Leistungen in Rechnung:",
         "position_rows": _build_position_rows(angebot),
         "total_netto_str": _format_eur(total_netto),
         "ust_pct_str": str(ust_pct).replace(".", ","),
