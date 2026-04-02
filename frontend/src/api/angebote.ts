@@ -1,5 +1,5 @@
 import client from './client'
-import type { Angebot, AngebotListItem, AngebotPosition, Rechnung } from '../types'
+import type { Angebot, AngebotListItem, AngebotPosition, AngebotPositionGroup, Rechnung } from '../types'
 
 const base = (projectId: string) => `/projects/${projectId}/angebote`
 
