@@ -3,6 +3,7 @@ export interface User {
   username: string
   full_name: string
   is_active: boolean
+  role: string
 }
 
 export interface Customer {

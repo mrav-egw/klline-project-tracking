@@ -191,7 +191,9 @@ async def add_purchase_order(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    max_result = await db.execute(select(func.max(PurchaseOrder.order_number)))
+    max_result = await db.execute(
+        select(func.max(PurchaseOrder.order_number)).with_for_update()
+    )
     next_number = (max_result.scalar() or 0) + 1
     data = body.model_dump()
     data["klline_paid"] = data.get("klline_paid_date") is not None
@@ -220,6 +222,8 @@ async def update_purchase_order(
     # Auto-derive klline_paid from klline_paid_date
     if "klline_paid_date" in data:
         data["klline_paid"] = data["klline_paid_date"] is not None
+    elif "klline_paid" in data:
+        del data["klline_paid"]  # Don't allow setting klline_paid without klline_paid_date
     for field, value in data.items():
         setattr(po, field, value)
     await db.flush()

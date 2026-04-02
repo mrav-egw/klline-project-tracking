@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import extract, select
+from sqlalchemy import extract, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -31,10 +31,16 @@ async def get_vertriebsbericht(
         .options(
             selectinload(Rechnung.angebot).selectinload(Angebot.project).selectinload(Project.customer),
         )
-        .where(extract("year", Rechnung.rechnung_date) == year)
     )
     if month is not None:
-        r_q = r_q.where(extract("month", Rechnung.rechnung_date) == month)
+        r_q = r_q.where(
+            extract("year", Rechnung.rechnung_date) == year,
+            extract("month", Rechnung.rechnung_date) == month,
+        )
+    else:
+        r_q = r_q.where(
+            or_(extract("year", Rechnung.rechnung_date) == year, Rechnung.rechnung_date.is_(None))
+        )
     r_result = await db.execute(r_q)
     rechnungen = r_result.scalars().all()
 
@@ -60,10 +66,16 @@ async def get_vertriebsbericht(
             selectinload(PurchaseOrder.project).selectinload(Project.customer),
             selectinload(PurchaseOrder.supplier),
         )
-        .where(extract("year", PurchaseOrder.order_date) == year)
     )
     if month is not None:
-        po_q = po_q.where(extract("month", PurchaseOrder.order_date) == month)
+        po_q = po_q.where(
+            extract("year", PurchaseOrder.order_date) == year,
+            extract("month", PurchaseOrder.order_date) == month,
+        )
+    else:
+        po_q = po_q.where(
+            or_(extract("year", PurchaseOrder.order_date) == year, PurchaseOrder.order_date.is_(None))
+        )
     po_result = await db.execute(po_q)
     purchase_orders = po_result.scalars().all()
 
@@ -93,12 +105,18 @@ async def get_vertriebsbericht(
         select(CostEntry)
         .where(
             CostEntry.category.in_([CostCategory.PAYROLL, CostCategory.OVERHEAD]),
-            extract("year", CostEntry.entry_date) == year,
         )
         .order_by(CostEntry.entry_date)
     )
     if month is not None:
-        ce_q = ce_q.where(extract("month", CostEntry.entry_date) == month)
+        ce_q = ce_q.where(
+            extract("year", CostEntry.entry_date) == year,
+            extract("month", CostEntry.entry_date) == month,
+        )
+    else:
+        ce_q = ce_q.where(
+            or_(extract("year", CostEntry.entry_date) == year, CostEntry.entry_date.is_(None))
+        )
     ce_result = await db.execute(ce_q)
     manual_entries = ce_result.scalars().all()
 
@@ -222,5 +240,5 @@ async def get_dashboard_summary(db: AsyncSession) -> DashboardSummary:
         total_revenue=total_revenue,
         total_purchases=total_purchases,
         total_still_to_invoice=total_still,
-        current_profit=total_revenue - total_purchases,
+        current_profit=total_revenue + total_still - total_purchases,
     )

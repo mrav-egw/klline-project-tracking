@@ -23,7 +23,7 @@ class AngebotPositionGroup(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
     positions: Mapped[list["AngebotPosition"]] = relationship(
-        "AngebotPosition", back_populates="group", cascade="all, delete-orphan",
+        "AngebotPosition", back_populates="group",
         order_by="AngebotPosition.sort_order",
     )
 

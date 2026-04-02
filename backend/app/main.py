@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -23,6 +24,7 @@ _COLUMN_MIGRATIONS = [
     "ALTER TABLE customers ADD COLUMN IF NOT EXISTS city VARCHAR",
     "ALTER TABLE customers ADD COLUMN IF NOT EXISTS country VARCHAR DEFAULT 'Österreich'",
     "ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_ust_id VARCHAR",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR NOT NULL DEFAULT 'user'",
 ]
 
 
@@ -38,7 +40,7 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as db:
         from app.models.number_sequence import NumberSequence
         for seq_id, prefix, start in [("AN", "AN-", 2500), ("RE", "RE-", 2660)]:
-            result = await db.execute(text(f"SELECT id FROM number_sequences WHERE id = '{seq_id}'"))
+            result = await db.execute(text("SELECT id FROM number_sequences WHERE id = :id"), {"id": seq_id})
             if result.scalar_one_or_none() is None:
                 db.add(NumberSequence(id=seq_id, prefix=prefix, current_value=start))
         await db.commit()
@@ -64,7 +66,7 @@ for router in [auth.router, users.router, customers.router, projects.router, sup
     app.include_router(router, prefix="/api")
 
 
-APP_VERSION = "ffb3d84"
+APP_VERSION = os.environ.get("APP_VERSION", "dev")
 
 @app.get("/api/health")
 async def health():

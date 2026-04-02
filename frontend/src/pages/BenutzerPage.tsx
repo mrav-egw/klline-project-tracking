@@ -12,13 +12,13 @@ export function BenutzerPage() {
   const currentUser = useAuthStore((s) => s.user)
   const [createModal, setCreateModal] = useState(false)
   const [editModal, setEditModal] = useState<{ id: string; data: UserUpdate } | null>(null)
-  const [form, setForm] = useState<UserCreate>({ username: '', password: '', full_name: '' })
+  const [form, setForm] = useState<UserCreate>({ username: '', password: '', full_name: '', role: 'user' })
 
   const { data: users, isLoading } = useQuery({ queryKey: ['users'], queryFn: getUsers })
 
   const create = useMutation({
     mutationFn: createUser,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setCreateModal(false); setForm({ username: '', password: '', full_name: '' }) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setCreateModal(false); setForm({ username: '', password: '', full_name: '', role: 'user' }) },
   })
   const edit = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UserUpdate }) => updateUser(id, data),
@@ -48,6 +48,7 @@ export function BenutzerPage() {
               <tr>
                 <th className="th">Benutzername</th>
                 <th className="th">Name</th>
+                <th className="th">Rolle</th>
                 <th className="th">Status</th>
                 <th className="th" />
               </tr>
@@ -63,12 +64,17 @@ export function BenutzerPage() {
                   </td>
                   <td className="td">{u.full_name}</td>
                   <td className="td">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {u.role === 'admin' ? 'Admin' : 'Benutzer'}
+                    </span>
+                  </td>
+                  <td className="td">
                     <StatusBadge paid={u.is_active} labelTrue="Aktiv" labelFalse="Deaktiviert" />
                   </td>
                   <td className="td">
                     <div className="flex justify-end gap-2">
                       <button
-                        onClick={() => setEditModal({ id: u.id, data: { username: u.username, full_name: u.full_name, is_active: u.is_active } })}
+                        onClick={() => setEditModal({ id: u.id, data: { username: u.username, full_name: u.full_name, is_active: u.is_active, role: u.role } })}
                         className="text-gray-400 hover:text-blue-600"
                       >
                         <Pencil size={14} />
@@ -106,6 +112,13 @@ export function BenutzerPage() {
               <label className="label">Passwort *</label>
               <input type="password" className="input" value={form.password} onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))} />
             </div>
+            <div>
+              <label className="label">Rolle</label>
+              <select className="input" value={form.role || 'user'} onChange={(e) => setForm(p => ({ ...p, role: e.target.value }))}>
+                <option value="user">Benutzer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
             {create.isError && <p className="text-sm text-red-600">Benutzername bereits vergeben.</p>}
             <div className="flex justify-end gap-3 pt-2">
               <button className="btn-secondary" onClick={() => setCreateModal(false)}>Abbrechen</button>
@@ -136,6 +149,13 @@ export function BenutzerPage() {
             <div>
               <label className="label">Neues Passwort (leer = unverändert)</label>
               <input type="password" className="input" value={editModal.data.password ?? ''} onChange={(e) => setEditModal(p => p && ({ ...p, data: { ...p.data, password: e.target.value || undefined } }))} />
+            </div>
+            <div>
+              <label className="label">Rolle</label>
+              <select className="input" value={editModal.data.role || 'user'} onChange={(e) => setEditModal(p => p && ({ ...p, data: { ...p.data, role: e.target.value } }))}>
+                <option value="user">Benutzer</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="is_active" checked={!!editModal.data.is_active} onChange={(e) => setEditModal(p => p && ({ ...p, data: { ...p.data, is_active: e.target.checked } }))} className="h-4 w-4" />

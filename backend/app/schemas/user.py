@@ -5,6 +5,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     full_name: str
+    role: str = "user"
 
 
 class UserUpdate(BaseModel):
@@ -12,6 +13,7 @@ class UserUpdate(BaseModel):
     full_name: str | None = None
     password: str | None = None
     is_active: bool | None = None
+    role: str | None = None
 
 
 class UserRead(BaseModel):
@@ -21,3 +23,4 @@ class UserRead(BaseModel):
     username: str
     full_name: str
     is_active: bool
+    role: str

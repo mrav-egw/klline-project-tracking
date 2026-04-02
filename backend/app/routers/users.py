@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_admin, get_current_user
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.services.auth import hash_password
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/", response_model=list[UserRead])
-async def list_users(db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def list_users(db: AsyncSession = Depends(get_db), _=Depends(get_current_admin)):
     result = await db.execute(select(User).order_by(User.full_name))
     return result.scalars().all()
 
@@ -21,7 +21,7 @@ async def list_users(db: AsyncSession = Depends(get_db), _=Depends(get_current_u
 async def create_user(
     body: UserCreate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    _=Depends(get_current_admin),
 ):
     existing = await db.execute(select(User).where(User.username == body.username))
     if existing.scalar_one_or_none():
@@ -30,6 +30,7 @@ async def create_user(
         username=body.username,
         full_name=body.full_name,
         hashed_password=hash_password(body.password),
+        role=body.role,
     )
     db.add(user)
     await db.flush()
@@ -42,7 +43,7 @@ async def update_user(
     user_id: str,
     body: UserUpdate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    _=Depends(get_current_admin),
 ):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
@@ -62,7 +63,7 @@ async def update_user(
 async def delete_user(
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_admin),
 ):
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Eigenen Account nicht löschbar")

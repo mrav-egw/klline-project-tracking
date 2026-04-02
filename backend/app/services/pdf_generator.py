@@ -1,7 +1,7 @@
 """PDF generation for Angebote and Rechnungen using WeasyPrint."""
 from decimal import Decimal
 
-from jinja2 import Template
+from jinja2 import Environment
 from weasyprint import HTML
 
 from app.models.angebot import Angebot, AngebotStatus
@@ -30,12 +30,12 @@ def _format_date(d) -> str:
 
 
 def _format_qty(v: Decimal) -> str:
-    if v == int(v):
-        return f"{int(v)},00"
-    return str(v).replace(".", ",")
+    q = v.quantize(Decimal("0.01"))
+    return str(q).replace(".", ",")
 
 
-TEMPLATE = Template(r"""<!DOCTYPE html>
+_env = Environment(autoescape=True)
+TEMPLATE = _env.from_string(r"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -320,7 +320,7 @@ def _position_to_row(p) -> dict:
         "menge_str": _format_qty(p.menge),
         "einheit": p.product.einheit if p.product else "Stk",
         "einzelpreis_str": _format_eur(p.einzelpreis),
-        "gesamtpreis_str": _format_eur(p.netto_amount),
+        "gesamtpreis_str": _format_eur(p.gesamtpreis),
         "rabatt_pct": float(p.rabatt_pct),
         "rabatt_pct_str": str(p.rabatt_pct).replace(".", ","),
         "rabatt_amount_str": _format_eur(p.rabatt_amount),

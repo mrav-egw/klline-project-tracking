@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_admin, get_current_user
 from app.schemas.report import DashboardSummary, VertriebsberichtReport
 from app.services.reports import get_dashboard_summary, get_vertriebsbericht
 
@@ -16,7 +16,7 @@ async def vertriebsbericht(
     year: int = datetime.now().year,
     month: int | None = None,
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    _=Depends(get_current_admin),
 ):
     return await get_vertriebsbericht(db, year, month)
 

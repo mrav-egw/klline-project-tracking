@@ -3,15 +3,17 @@ import { BarChart2, FolderOpen, LogOut, Truck, Wrench, Users, Building2, Package
 import { useAuthStore } from '../store/auth'
 
 const navItems = [
-  { to: '/projekte', label: 'Projekte', icon: FolderOpen },
-  { to: '/produkte', label: 'Produkte', icon: Package },
-  { to: '/kunden', label: 'Kunden', icon: Building2 },
-  { to: '/vertriebsbericht', label: 'Vertriebsbericht', icon: BarChart2 },
-  { to: '/lieferanten', label: 'Lieferanten', icon: Truck },
-  { to: '/monteure', label: 'Monteure', icon: Wrench },
-  { to: '/benutzer', label: 'Benutzer', icon: Users },
-  { to: '/einstellungen', label: 'Einstellungen', icon: Settings },
+  { to: '/projekte', label: 'Projekte', icon: FolderOpen, adminOnly: false },
+  { to: '/produkte', label: 'Produkte', icon: Package, adminOnly: false },
+  { to: '/kunden', label: 'Kunden', icon: Building2, adminOnly: false },
+  { to: '/vertriebsbericht', label: 'Vertriebsbericht', icon: BarChart2, adminOnly: true },
+  { to: '/lieferanten', label: 'Lieferanten', icon: Truck, adminOnly: false },
+  { to: '/monteure', label: 'Monteure', icon: Wrench, adminOnly: false },
+  { to: '/benutzer', label: 'Benutzer', icon: Users, adminOnly: true },
+  { to: '/einstellungen', label: 'Einstellungen', icon: Settings, adminOnly: true },
 ]
+
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || 'dev'
 
 export function Layout() {
   const { user, logout } = useAuthStore()
@@ -24,7 +26,7 @@ export function Layout() {
           <span className="text-lg font-bold tracking-tight">Klline</span>
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {navItems.map(({ to, label, icon: Icon }) => (
+          {navItems.filter(item => !item.adminOnly || user?.role === 'admin').map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -40,7 +42,7 @@ export function Layout() {
           ))}
         </nav>
         <div className="border-t border-gray-700 px-3 py-4">
-          <div className="mb-1 px-3 text-[10px] text-gray-600">Frontend: ffb3d84</div>
+          <div className="mb-1 px-3 text-[10px] text-gray-600">Frontend: {APP_VERSION}</div>
           <div className="mb-2 px-3 text-xs text-gray-400">{user?.full_name} ({user?.username})</div>
           <button
             onClick={logout}

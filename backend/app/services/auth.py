@@ -51,6 +51,7 @@ async def ensure_admin_user(db: AsyncSession) -> None:
             username="admin",
             hashed_password=hash_password("klline2025"),
             full_name="Administrator",
+            role="admin",
         )
         db.add(admin)
         await db.commit()

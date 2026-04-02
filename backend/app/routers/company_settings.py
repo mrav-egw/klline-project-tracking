@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_admin
 from app.models.company_settings import CompanySettings
 from app.schemas.company_settings import CompanySettingsRead, CompanySettingsUpdate
 
@@ -30,7 +30,7 @@ async def _get_or_create(db: AsyncSession) -> CompanySettings:
 @router.get("/", response_model=CompanySettingsRead)
 async def get_company_settings(
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    _=Depends(get_current_admin),
 ):
     return await _get_or_create(db)
 
@@ -39,7 +39,7 @@ async def get_company_settings(
 async def update_company_settings(
     body: CompanySettingsUpdate,
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    _=Depends(get_current_admin),
 ):
     cs = await _get_or_create(db)
     for field, value in body.model_dump(exclude_unset=True).items():

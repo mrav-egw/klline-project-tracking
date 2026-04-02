@@ -101,6 +101,10 @@ async def create_angebot(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_user),
 ):
+    # Verify project exists
+    proj = await db.execute(select(Project).where(Project.id == project_id))
+    if proj.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Projekt nicht gefunden")
     number = await _next_number(db, "AN")
     a = Angebot(project_id=project_id, angebot_number=number, angebot_date=body.angebot_date)
     db.add(a)
