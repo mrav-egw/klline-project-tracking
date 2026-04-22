@@ -172,6 +172,7 @@ TEMPLATE = _env.from_string(r"""<!DOCTYPE html>
         <tr><td>{{ doc_number_label }}</td><td>{{ doc_number }}</td></tr>
         <tr><td>{{ doc_date_label }}</td><td>{{ doc_date }}</td></tr>
         {% if reference %}<tr><td>Referenz</td><td>{{ reference }}</td></tr>{% endif %}
+        {% if customer.kundennr %}<tr><td>Ihre Kundennummer</td><td>{{ customer.kundennr }}</td></tr>{% endif %}
         {% if ansprechpartner %}<tr><td>Ihr Ansprechpartner</td><td>{{ ansprechpartner }}</td></tr>{% endif %}
         {% if customer.customer_ust_id %}<tr><td>Ihre USt-Id.</td><td>{{ customer.customer_ust_id }}</td></tr>{% endif %}
       </table>

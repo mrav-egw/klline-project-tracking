@@ -8,10 +8,13 @@ export interface User {
 
 export interface Customer {
   id: string
+  kundennr?: string
   name: string
   contact_person?: string
   email?: string
   phone?: string
+  mobil?: string
+  webseite?: string
   address?: string
   postal_code?: string
   city?: string
@@ -19,6 +22,7 @@ export interface Customer {
   customer_ust_id?: string
   notes?: string
   ust_pct: number
+  payment_terms_days?: number
   created_at: string
   updated_at: string
 }

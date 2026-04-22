@@ -50,6 +50,7 @@ export function KundenPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
+                    <th className="th">Nr.</th>
                     <th className="th">Name</th>
                     <th className="th">Kontakt</th>
                     <th className="th">E-Mail</th>
@@ -67,6 +68,7 @@ export function KundenPage() {
                         onClick={() => setSelected(selected?.id === c.id ? null : c)}
                         className={`cursor-pointer transition-colors ${selected?.id === c.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                       >
+                        <td className="td font-mono text-xs text-gray-400">{c.kundennr ?? '–'}</td>
                         <td className="td font-medium text-blue-600">{c.name}</td>
                         <td className="td text-gray-500">{c.contact_person ?? '–'}</td>
                         <td className="td text-gray-500">{c.email ?? '–'}</td>
@@ -92,7 +94,7 @@ export function KundenPage() {
                     )
                   })}
                   {(customers ?? []).length === 0 && (
-                    <tr><td colSpan={6} className="td text-center text-gray-400 py-8">Keine Kunden</td></tr>
+                    <tr><td colSpan={7} className="td text-center text-gray-400 py-8">Keine Kunden</td></tr>
                   )}
                 </tbody>
               </table>
@@ -150,10 +152,13 @@ export function KundenPage() {
         <Modal title={modal.editId ? 'Kunde bearbeiten' : 'Kunde anlegen'} onClose={() => setModal({ open: false, data: emptyCustomer() })}>
           <div className="space-y-4">
             {([
+              ['kundennr', 'Kunden-Nr. (auto bei leer)'],
               ['name', 'Name *'],
               ['contact_person', 'Kontaktperson'],
               ['email', 'E-Mail'],
               ['phone', 'Telefon'],
+              ['mobil', 'Mobil'],
+              ['webseite', 'Webseite'],
               ['address', 'Adresse'],
               ['postal_code', 'PLZ'],
               ['city', 'Ort'],
@@ -177,6 +182,16 @@ export function KundenPage() {
                 className="input"
                 value={modal.data.ust_pct ?? 20}
                 onChange={(e) => setModal(prev => ({ ...prev, data: { ...prev.data, ust_pct: parseFloat(e.target.value) || 20 } }))}
+              />
+            </div>
+            <div>
+              <label className="label">Zahlungsziel (Tage)</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="z.B. 14"
+                value={modal.data.payment_terms_days ?? ''}
+                onChange={(e) => setModal(prev => ({ ...prev, data: { ...prev.data, payment_terms_days: e.target.value === '' ? undefined : parseInt(e.target.value, 10) } }))}
               />
             </div>
             <div>

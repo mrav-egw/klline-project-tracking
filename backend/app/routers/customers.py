@@ -5,9 +5,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.deps import get_current_user
 from app.models.customer import Customer
+from app.models.number_sequence import NumberSequence
 from app.schemas.customer import CustomerCreate, CustomerRead, CustomerUpdate
 
 router = APIRouter(prefix="/customers", tags=["customers"])
+
+
+async def _next_kundennr(db: AsyncSession) -> str:
+    result = await db.execute(select(NumberSequence).where(NumberSequence.id == "KU").with_for_update())
+    seq = result.scalar_one_or_none()
+    if seq is None:
+        seq = NumberSequence(id="KU", prefix="", current_value=1031)
+        db.add(seq)
+        await db.flush()
+    seq.current_value += 1
+    return f"{seq.prefix}{seq.current_value}"
 
 
 @router.get("/", response_model=list[CustomerRead])
@@ -26,7 +38,10 @@ async def create_customer(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    customer = Customer(**body.model_dump())
+    data = body.model_dump()
+    if not data.get("kundennr"):
+        data["kundennr"] = await _next_kundennr(db)
+    customer = Customer(**data)
     db.add(customer)
     await db.flush()
     await db.refresh(customer)

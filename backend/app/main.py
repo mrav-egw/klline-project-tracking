@@ -25,6 +25,11 @@ _COLUMN_MIGRATIONS = [
     "ALTER TABLE customers ADD COLUMN IF NOT EXISTS country VARCHAR DEFAULT 'Österreich'",
     "ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_ust_id VARCHAR",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR NOT NULL DEFAULT 'user'",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS kundennr VARCHAR",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS mobil VARCHAR",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS webseite VARCHAR",
+    "ALTER TABLE customers ADD COLUMN IF NOT EXISTS payment_terms_days INTEGER",
+    "CREATE UNIQUE INDEX IF NOT EXISTS ix_customers_kundennr ON customers (kundennr)",
 ]
 
 
@@ -39,7 +44,7 @@ async def lifespan(app: FastAPI):
     # Ensure number sequences exist
     async with AsyncSessionLocal() as db:
         from app.models.number_sequence import NumberSequence
-        for seq_id, prefix, start in [("AN", "AN-", 2500), ("RE", "RE-", 2660)]:
+        for seq_id, prefix, start in [("AN", "AN-", 2500), ("RE", "RE-", 2660), ("KU", "", 1031)]:
             result = await db.execute(text("SELECT id FROM number_sequences WHERE id = :id"), {"id": seq_id})
             if result.scalar_one_or_none() is None:
                 db.add(NumberSequence(id=seq_id, prefix=prefix, current_value=start))
