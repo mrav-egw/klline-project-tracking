@@ -9,7 +9,7 @@ import {
   createRechnung, updateRechnungPayment,
   downloadAngebotPdf, downloadRechnungPdf,
 } from '../api/angebote'
-import { getProducts } from '../api/products'
+import { getProducts, createProduct } from '../api/products'
 import { formatCurrency, formatDate } from '../utils/format'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { Modal } from '../components/Modal'
@@ -39,6 +39,11 @@ export function AngebotDetailPage() {
   const [productSearch, setProductSearch] = useState('')
   const [rechnungModal, setRechnungModal] = useState<{ open: boolean; type: 'ABSCHLAG' | 'SCHLUSS'; pct: string; date: string }>({ open: false, type: 'ABSCHLAG', pct: '50', date: '' })
   const [paymentModal, setPaymentModal] = useState<{ open: boolean; rechnungId: string; date: string }>({ open: false, rechnungId: '', date: '' })
+
+  // Inline product creation
+  const [newProductForm, setNewProductForm] = useState<{ open: boolean; name: string; listenpreis: string; einheit: string; description: string }>({
+    open: false, name: '', listenpreis: '', einheit: 'Stk', description: '',
+  })
 
   const locked = angebot?.status === 'AKZEPTIERT'
 
@@ -78,12 +83,38 @@ export function AngebotDetailPage() {
     onSuccess: () => { invalidate(); setPaymentModal({ open: false, rechnungId: '', date: '' }) },
   })
 
+  const doCreateProduct = useMutation({
+    mutationFn: () => createProduct({
+      name: newProductForm.name,
+      listenpreis: parseFloat(newProductForm.listenpreis) || 0,
+      einheit: newProductForm.einheit || 'Stk',
+      description: newProductForm.description || undefined,
+    }),
+    onSuccess: (created) => {
+      qc.invalidateQueries({ queryKey: ['products'] })
+      // Auto-select the newly created product into the position
+      setPosModal(prev => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          product_id: created.id,
+          einzelpreis: created.listenpreis,
+          description_override: created.description || undefined,
+          menge: prev.data.menge ?? 1,
+          rabatt_pct: prev.data.rabatt_pct ?? 0,
+        },
+      }))
+      setNewProductForm({ open: false, name: '', listenpreis: '', einheit: 'Stk', description: '' })
+    },
+  })
+
   if (isLoading) return <LoadingSpinner className="py-24" />
   if (!angebot) return <div className="p-6 text-gray-500">Angebot nicht gefunden.</div>
 
   const openAddPosition = (groupId?: string) => {
     setPosModal({ open: true, data: { group_id: groupId } })
     setProductSearch('')
+    setNewProductForm({ open: false, name: '', listenpreis: '', einheit: 'Stk', description: '' })
   }
 
   const selectProduct = (p: Product) => {
@@ -346,12 +377,54 @@ export function AngebotDetailPage() {
             {/* Product picker (only for new positions) */}
             {!posModal.editId && (
               <div>
-                <label className="label">Produkt auswählen *</label>
-                <div className="relative mb-2">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input className="input pl-8 text-sm" placeholder="Suchen..."
-                    value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="label mb-0">Produkt auswählen *</label>
+                  {!posModal.data.product_id && !newProductForm.open && (
+                    <button onClick={() => setNewProductForm(prev => ({ ...prev, open: true, name: productSearch }))}
+                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                      <Plus size={12} /> Neues Produkt anlegen
+                    </button>
+                  )}
                 </div>
+
+                {/* Inline create form */}
+                {newProductForm.open && !posModal.data.product_id && (
+                  <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-3 space-y-2 mb-2">
+                    <p className="text-xs font-semibold text-blue-800">Neues Produkt anlegen</p>
+                    <input className="input text-sm" placeholder="Produktname *"
+                      value={newProductForm.name}
+                      onChange={(e) => setNewProductForm(prev => ({ ...prev, name: e.target.value }))} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input type="number" step="0.01" className="input text-sm" placeholder="Listenpreis (netto)"
+                        value={newProductForm.listenpreis}
+                        onChange={(e) => setNewProductForm(prev => ({ ...prev, listenpreis: e.target.value }))} />
+                      <input className="input text-sm" placeholder="Einheit (z.B. Stk)"
+                        value={newProductForm.einheit}
+                        onChange={(e) => setNewProductForm(prev => ({ ...prev, einheit: e.target.value }))} />
+                    </div>
+                    <textarea className="input text-sm" rows={2} placeholder="Beschreibung (optional)"
+                      value={newProductForm.description}
+                      onChange={(e) => setNewProductForm(prev => ({ ...prev, description: e.target.value }))} />
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setNewProductForm({ open: false, name: '', listenpreis: '', einheit: 'Stk', description: '' })}
+                        className="text-xs text-gray-600 hover:text-gray-800">Abbrechen</button>
+                      <button onClick={() => doCreateProduct.mutate()}
+                        disabled={!newProductForm.name || doCreateProduct.isPending}
+                        className="btn-primary text-xs py-1 px-2">
+                        {doCreateProduct.isPending ? 'Erstelle...' : 'Anlegen & auswählen'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!newProductForm.open && (
+                  <div className="relative mb-2">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input className="input pl-8 text-sm" placeholder="Suchen..."
+                      value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
+                  </div>
+                )}
+
                 {posModal.data.product_id ? (
                   <div className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm flex items-center justify-between">
                     <span className="font-medium text-green-800">
@@ -360,7 +433,7 @@ export function AngebotDetailPage() {
                     <button onClick={() => setPosModal(prev => ({ ...prev, data: { ...prev.data, product_id: undefined, einzelpreis: undefined, description_override: undefined } }))}
                       className="text-green-600 hover:text-red-600 text-xs">Ändern</button>
                   </div>
-                ) : (
+                ) : !newProductForm.open && (
                   <div className="max-h-40 overflow-y-auto rounded border border-gray-200 divide-y divide-gray-100">
                     {filteredProducts.slice(0, 20).map(p => (
                       <button key={p.id} onClick={() => selectProduct(p)}
