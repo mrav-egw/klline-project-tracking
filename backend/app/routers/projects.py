@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -191,9 +191,10 @@ async def add_purchase_order(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    max_result = await db.execute(
-        select(func.max(PurchaseOrder.order_number)).with_for_update()
-    )
+    # Use a Postgres advisory transaction lock to serialize concurrent inserts
+    # (FOR UPDATE doesn't work with aggregate functions like MAX).
+    await db.execute(text("SELECT pg_advisory_xact_lock(42)"))
+    max_result = await db.execute(select(func.max(PurchaseOrder.order_number)))
     next_number = (max_result.scalar() or 0) + 1
     data = body.model_dump()
     data["klline_paid"] = data.get("klline_paid_date") is not None

@@ -30,6 +30,9 @@ def _format_date(d) -> str:
 
 
 def _format_qty(v: Decimal) -> str:
+    # Show integer for whole numbers, otherwise 2 decimals
+    if v == v.to_integral_value():
+        return str(int(v))
     q = v.quantize(Decimal("0.01"))
     return str(q).replace(".", ",")
 

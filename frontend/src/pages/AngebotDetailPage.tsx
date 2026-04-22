@@ -385,12 +385,16 @@ export function AngebotDetailPage() {
               </select>
             </div>
 
+            {(() => {
+              const selectedProduct = (products ?? []).find(p => p.id === posModal.data.product_id)
+              const isStk = !selectedProduct || selectedProduct.einheit === 'Stk'
+              return (
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="label">Menge</label>
-                <input type="number" step="0.01" className="input"
+                <label className="label">Menge {selectedProduct ? `(${selectedProduct.einheit})` : ''}</label>
+                <input type="number" step={isStk ? '1' : '0.01'} min="0" className="input"
                   value={posModal.data.menge ?? ''}
-                  onChange={(e) => setPosModal(prev => ({ ...prev, data: { ...prev.data, menge: e.target.value === '' ? undefined : parseFloat(e.target.value) } }))} />
+                  onChange={(e) => setPosModal(prev => ({ ...prev, data: { ...prev.data, menge: e.target.value === '' ? undefined : (isStk ? parseInt(e.target.value, 10) : parseFloat(e.target.value)) } }))} />
               </div>
               <div>
                 <label className="label">Einzelpreis (netto)</label>
@@ -405,6 +409,8 @@ export function AngebotDetailPage() {
                   onChange={(e) => setPosModal(prev => ({ ...prev, data: { ...prev.data, rabatt_pct: e.target.value === '' ? undefined : parseFloat(e.target.value) } }))} />
               </div>
             </div>
+              )
+            })()}
 
             {/* Computed preview */}
             {posModal.data.menge && posModal.data.einzelpreis != null && (
