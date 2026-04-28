@@ -477,9 +477,9 @@ export function AngebotDetailPage() {
               </div>
               <div>
                 <label className="label">Rabatt (%)</label>
-                <input type="number" step="0.01" className="input"
+                <input type="number" step="1" min="0" max="100" className="input"
                   value={posModal.data.rabatt_pct ?? ''}
-                  onChange={(e) => setPosModal(prev => ({ ...prev, data: { ...prev.data, rabatt_pct: e.target.value === '' ? undefined : parseFloat(e.target.value) } }))} />
+                  onChange={(e) => setPosModal(prev => ({ ...prev, data: { ...prev.data, rabatt_pct: e.target.value === '' ? undefined : Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)) } }))} />
               </div>
             </div>
               )
